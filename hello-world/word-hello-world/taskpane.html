@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+</head>
+
+<body>
+    <p>This add-in allows you to protect and unlock the Word document.</p>
+    <button id="protectButton">Protect</button>
+    <button id="unlockButton">Unlock</button>
+
+    <!-- The following image URL tracks diagnostic data for this sample add-in. Please remove the image tag if you reuse this sample in your own code project. -->
+    <img src="https://pnptelemetry.azurewebsites.net/pnp-officeaddins/samples/word-add-in-protect-unlock" />
+</body>
+
+<script>
+    Office.onReady((info) => {
+        // Check that we loaded into Word
+        if (info.host === Office.HostType.Word) {
+            document.getElementById("protectButton").onclick = protectDocument;
+            document.getElementById("unlockButton").onclick = unlockDocument;
+        }
+    });
+
+    function protectDocument() {
+        return Word.run((context) => {
+            // Protect the document with a password
+            context.document.protection.protect(Word.ProtectionType.readOnly, { password: "password123" });
+            return context.sync().then(() => {
+                console.log("Document is now protected.");
+            });
+        }).catch((error) => {
+            console.error("Error protecting document: ", error);
+        });
+    }
+
+    function unlockDocument() {
+        return Word.run((context) => {
+            // Remove protection from the document
+            context.document.protection.unprotect({ password: "password123" });
+            return context.sync().then(() => {
+                console.log("Document is now unlocked.");
+            });
+        }).catch((error) => {
+            console.error("Error unlocking document: ", error);
+        });
+    }
+</script>
+
+</html>
