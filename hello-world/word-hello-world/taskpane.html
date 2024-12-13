@@ -1,52 +1,47 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <!-- Office JavaScript API -->
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+  <title>Taskpane</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
-
 <body>
-    <p>This add-in allows you to protect and unlock the Word document.</p>
-    <button id="protectButton">Protect</button>
-    <button id="unlockButton">Unlock</button>
+  <h1>Hello World Add-in</h1>
+  <button id="writeButton">Write</button>
+  <button id="protectButton">Protect</button>
 
-    <!-- The following image URL tracks diagnostic data for this sample add-in. Please remove the image tag if you reuse this sample in your own code project. -->
-    <img src="https://pnptelemetry.azurewebsites.net/pnp-officeaddins/samples/word-add-in-protect-unlock" />
-</body>
-
-<script>
-    Office.onReady((info) => {
-        // Check that we loaded into Word
-        if (info.host === Office.HostType.Word) {
-            document.getElementById("protectButton").onclick = protectDocument;
-            document.getElementById("unlockButton").onclick = unlockDocument;
-        }
+  <script>
+    // Ensure Office is initialized
+    Office.onReady(function (info) {
+      if (info.host === Office.HostType.Word) {
+        document.getElementById("writeButton").onclick = writeHelloWorlds;
+        document.getElementById("protectButton").onclick = protectContent;
+      }
     });
 
-    function protectDocument() {
-        return Word.run((context) => {
-            // Protect the document with a password
-            context.document.protection.protect(Word.ProtectionType.readOnly, { password: "password123" });
-            return context.sync().then(() => {
-                console.log("Document is now protected.");
-            });
-        }).catch((error) => {
-            console.error("Error protecting document: ", error);
-        });
+    // Function to write a paragraph of "Hello world"
+    async function writeHelloWorlds() {
+      await Word.run(async (context) => {
+        const body = context.document.body;
+        body.insertParagraph("Hello world. Hello world. Hello world.", Word.InsertLocation.end);
+        await context.sync();
+      });
     }
 
-    function unlockDocument() {
-        return Word.run((context) => {
-            // Remove protection from the document
-            context.document.protection.unprotect({ password: "password123" });
-            return context.sync().then(() => {
-                console.log("Document is now unlocked.");
-            });
-        }).catch((error) => {
-            console.error("Error unlocking document: ", error);
-        });
-    }
-</script>
+    // Function to protect content by converting it to '1's
+    async function protectContent() {
+      await Word.run(async (context) => {
+        const body = context.document.body;
+        body.load("text");
+        await context.sync();
 
+        // Convert the text to '1's
+        const originalText = body.text;
+        const protectedText = originalText.replace(/./g, "1");
+        body.clear();
+        body.insertText(protectedText, Word.InsertLocation.start);
+        await context.sync();
+      });
+    }
+  </script>
+</body>
 </html>
