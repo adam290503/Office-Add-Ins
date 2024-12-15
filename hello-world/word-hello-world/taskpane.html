@@ -1,47 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Taskpane</title>
+  <title>Secure Document Taskpane</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
 <body>
-  
-  <button id="write hello worlds">Write</button>
-  <button id="protect entire document">Protect</button>
+  <h2>Document Security</h2>
 
-  <script>
-    // Ensure Office is initialized
-    Office.onReady(function (info) {
-      if (info.host === Office.HostType.Word) {
-        document.getElementById("writeButton").onclick = writeHelloWorlds;
-        document.getElementById("protectButton").onclick = protectContent;
-      }
-    });
+  <label for="clearance-level">Select Clearance Level:</label>
+  <select id="clearance-level">
+    <option value="dv">DV</option>
+    <option value="sc">SC</option>
+    <option value="official">Official</option>
+  </select>
+  <br><br>
 
-    // Function to write a paragraph of "Hello world"
-    async function writeHelloWorlds() {
-      await Word.run(async (context) => {
-        const body = context.document.body;
-        body.insertParagraph("Hello world. Hello world. Hello world.", Word.InsertLocation.end);
-        await context.sync();
-      });
-    }
+  <button id="encryptButton">Encrypt Highlighted</button>
+  <button id="decryptButton">Decrypt Highlighted</button>
+  <button id="writeButton">Write Hello Worlds</button>
+  <button id="protectButton">Protect Entire Document</button>
 
-    // Function to protect content by converting it to '1's
-    async function protectContent() {
-      await Word.run(async (context) => {
-        const body = context.document.body;
-        body.load("text");
-        await context.sync();
-
-        // Convert the text to '1's
-        const originalText = body.text;
-        const protectedText = originalText.replace(/./g, "1");
-        body.clear();
-        body.insertText(protectedText, Word.InsertLocation.start);
-        await context.sync();
-      });
-    }
-  </script>
+  <script src="path-to-your-script.js"></script>
 </body>
 </html>
