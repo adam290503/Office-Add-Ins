@@ -7,7 +7,6 @@ Office.onReady(function (info) {
   }
 });
 
-// Clearance level keys
 const keys = {
   dv: "dv-secure-key",
   sc: "sc-secure-key",
@@ -53,12 +52,12 @@ async function writeHelloWorlds() {
   });
 }
 
-// replacing all content with '1's
+// replacing all content with 1s
 async function protectContent() {
   await Word.run(async (context) => {
     const body = context.document.body;
     body.load("text");
-    await context.sync(); // Necessary to load the text for replacement
+    await context.sync(); 
 
     const protectedText = body.text.replace(/./g, "1");
     body.clear();
