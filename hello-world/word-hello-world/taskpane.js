@@ -14,7 +14,7 @@ const keys = {
   official: "official-secure-key",
 };
 
-// Function to encrypt highlighted text
+// encrypt
 async function encryptHighlightedText() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -29,7 +29,7 @@ async function encryptHighlightedText() {
   });
 }
 
-// Function to decrypt highlighted text
+// decrypt highlighted text using key
 async function decryptHighlightedText() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -45,7 +45,7 @@ async function decryptHighlightedText() {
   });
 }
 
-// Function to write a paragraph of "Hello world"
+// word paster
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
@@ -53,7 +53,7 @@ async function writeHelloWorlds() {
   });
 }
 
-// Function to protect content by replacing it with '1's
+// replacing all content with '1's
 async function protectContent() {
   await Word.run(async (context) => {
     const body = context.document.body;
