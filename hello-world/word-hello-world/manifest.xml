@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
-  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" 
+           xsi:type="TaskPaneApp">
   <Id>C4E304B6-24D2-416B-9BC6-2B4C4D37AEFB</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>Contoso</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Hello world"/>
-  <Description DefaultValue="A simple hello world Office Add-in."/>
+  <DisplayName DefaultValue="Secure Document Add-in"/>
+  <Description DefaultValue="Encrypt and decrypt document sections based on roles."/>
   <IconUrl DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="https://learn.microsoft.com/office/dev/add-ins/overview/office-add-in-code-samples"/>
   <AppDomains>
     <AppDomain>https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world</AppDomain>
   </AppDomains>
@@ -73,14 +73,14 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with the Hello world add-in!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="Contoso Add-in"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Hello world"/>
-        <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Hello world"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with Secure Document Add-in!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Secure Document"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Secure Document"/>
+        <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Secure Document"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="Your sample add-in loaded successfully. Go to the HOME tab and click the 'Hello world' button to get started."/>
-        <bt:String id="TaskpaneButton.SupertipText" DefaultValue="Open the Hello world add-in"/>
+        <bt:String id="GetStarted.Description" DefaultValue="Protect and manage document access using encryption."/>
+        <bt:String id="TaskpaneButton.SupertipText" DefaultValue="Open the Secure Document add-in."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
