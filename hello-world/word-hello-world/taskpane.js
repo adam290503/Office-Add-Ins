@@ -1,4 +1,4 @@
-// Ensure Office.js is initialized before any API calls
+
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
     // Attach button handlers
@@ -16,7 +16,7 @@ const keys = {
   official: "official-secure-key",
 };
 
-// Encrypt highlighted text
+// encrypt highlighted text
 async function encryptHighlightedText() {
   try {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -39,7 +39,7 @@ async function encryptHighlightedText() {
   }
 }
 
-// Decrypt highlighted text
+// decrypt highlighted text
 async function decryptHighlightedText() {
   try {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -69,7 +69,7 @@ async function decryptHighlightedText() {
   }
 }
 
-// Encrypt the entire document based on the selected role
+// encrypt the entire document based on the selected role
 async function encryptEntireDocument() {
   try {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -93,7 +93,7 @@ async function encryptEntireDocument() {
   }
 }
 
-// Decrypt the entire document based on the selected role
+// decrypt the entire document based on the selected role
 async function decryptEntireDocument() {
   try {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -124,7 +124,6 @@ async function decryptEntireDocument() {
   }
 }
 
-// Insert "Hello World" at the end of the document
 async function writeHelloWorlds() {
   try {
     await Word.run(async (context) => {
