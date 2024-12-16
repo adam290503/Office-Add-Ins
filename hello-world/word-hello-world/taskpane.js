@@ -1,9 +1,24 @@
-Office.onReady(function (info) {
+Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
-    document.getElementById("encryptButton").onclick = encryptHighlightedText;
-    document.getElementById("decryptButton").onclick = decryptHighlightedText;
-    document.getElementById("writeButton").onclick = writeHelloWorlds;
-    document.getElementById("protectButton").onclick = protectContent;
+    console.log("Office.js is ready!");
+    document.getElementById("encryptButton").onclick = () => {
+      console.log("Encrypt Button Clicked");
+      encryptHighlightedText();
+    };
+    document.getElementById("decryptButton").onclick = () => {
+      console.log("Decrypt Button Clicked");
+      decryptHighlightedText();
+    };
+    document.getElementById("writeButton").onclick = () => {
+      console.log("Write Hello Worlds Button Clicked");
+      writeHelloWorlds();
+    };
+    document.getElementById("protectButton").onclick = () => {
+      console.log("Protect Content Button Clicked");
+      protectContent();
+    };
+  } else {
+    console.error("This add-in is not running in Word.");
   }
 });
 
@@ -13,7 +28,7 @@ const keys = {
   official: "official-secure-key",
 };
 
-// encrypt
+// Encrypt highlighted text
 async function encryptHighlightedText() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -21,14 +36,16 @@ async function encryptHighlightedText() {
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
     selection.load("text");
-    await context.sync(); // Ensure selected text is loaded
+    await context.sync();
 
+    console.log("Selected text for encryption:", selection.text);
     const encryptedText = CryptoJS.AES.encrypt(selection.text, key).toString();
     selection.insertText(encryptedText, Word.InsertLocation.replace);
+    console.log("Text encrypted and replaced.");
   });
 }
 
-// decrypt highlighted text using key
+// Decrypt highlighted text
 async function decryptHighlightedText() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -36,31 +53,38 @@ async function decryptHighlightedText() {
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
     selection.load("text");
-    await context.sync(); // Ensure selected text is loaded
+    await context.sync();
 
+    console.log("Selected text for decryption:", selection.text);
     const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
     const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
     selection.insertText(decryptedText, Word.InsertLocation.replace);
+    console.log("Text decrypted and replaced.");
   });
 }
 
-// word paster
+// Insert "Hello World" at the end of the document
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world! Hello world. Hello world.", Word.InsertLocation.end);
+    body.insertParagraph(
+      "Hello world! Hello world. Hello world.",
+      Word.InsertLocation.end
+    );
+    console.log("Hello World paragraphs added.");
   });
 }
 
-// replacing all content with 1s
+// Protect content by replacing all text with '1'
 async function protectContent() {
   await Word.run(async (context) => {
     const body = context.document.body;
     body.load("text");
-    await context.sync(); // Necessary to load the text for replacement
+    await context.sync();
 
     const protectedText = body.text.replace(/./g, "1");
     body.clear();
     body.insertText(protectedText, Word.InsertLocation.start);
+    console.log("Document protected by replacing content with '1'.");
   });
 }
