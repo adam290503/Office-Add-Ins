@@ -23,20 +23,20 @@ async function serializeContent(selection) {
   };
 
   const tables = selection.tables.items;
-  console.log(tables)
   if (tables.length > 0) {
+    selection.tables.load("items");
+    await selection.context.sync();
+
     for (const table of tables) {
-      table.load("rows/items/cells/items");
-      await table.context.sync();
+      table.rows.load("items");
+      await selection.context.sync();
 
       const serializedTable = [];
       for (const row of table.rows.items) {
-        const serializedRow = [];
-        for (const cell of row.cells.items) {
-          cell.load("body/text");
-          await cell.context.sync();
-          serializedRow.push(cell.body.text);
-        }
+        row.cells.load("items/body/text");
+        await selection.context.sync();
+
+        const serializedRow = row.cells.items.map((cell) => cell.body.text);
         serializedTable.push(serializedRow);
       }
       serialized.tables.push(serializedTable);
@@ -44,7 +44,6 @@ async function serializeContent(selection) {
   }
   return JSON.stringify(serialized);
 }
-
 
 // Deserialize and insert content
 async function deserializeAndInsertContent(serializedString, selection) {
@@ -75,8 +74,7 @@ async function encryptHighlightedContent() {
 
     await Word.run(async (context) => {
       const selection = context.document.getSelection();
-      selection.load("text");
-      selection.load("tables/items");
+      selection.load("text, tables/items");
       await context.sync();
 
       if (!selection.text && selection.tables.items.length === 0) {
