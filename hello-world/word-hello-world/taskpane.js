@@ -49,16 +49,18 @@ async function serializeContent(selection) {
 async function deserializeAndInsertContent(serializedString, selection) {
   const serialized = JSON.parse(serializedString);
 
+  // Insert the text first
   if (serialized.text) {
     selection.insertText(serialized.text, Word.InsertLocation.replace);
   }
 
+  // If tables exist, insert them one by one
   if (serialized.tables.length > 0) {
     for (const tableData of serialized.tables) {
       const newTable = selection.insertTable(
         tableData.length,
         tableData[0].length,
-        Word.InsertLocation.replace,
+        Word.InsertLocation.start,
         tableData
       );
       await newTable.context.sync();
