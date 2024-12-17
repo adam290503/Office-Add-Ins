@@ -282,3 +282,6 @@ function copyContentWithOOXML() {
 
 
    function showNotification(title, message) { const notification = document.getElementById("notification"); notification.innerText = `${title}: ${message}`; }
+
+   console.log("OOXML TEST")
+   console.log(copiedOOXML)
