@@ -22,7 +22,6 @@ async function serializeContent(selection) {
     tables: [],
   };
 
-  // If there are tables, include their data
   const tables = selection.tables.items;
   if (tables.length > 0) {
     for (const table of tables) {
@@ -44,6 +43,8 @@ async function serializeContent(selection) {
   }
   return JSON.stringify(serialized);
 }
+
+console.log(tables)
 
 // Deserialize and insert content
 async function deserializeAndInsertContent(serializedString, selection) {
