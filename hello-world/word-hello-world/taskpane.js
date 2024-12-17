@@ -16,7 +16,11 @@ const keys = {
   official: "official-secure-key",
 };
 
+/**
+ * Serialize the user's current selection, including any fully selected tables.
+ */
 async function serializeSelection(context, selection) {
+  // Load the text and table properties of the selection
   selection.load("text");
   selection.tables.load();
   await context.sync();
@@ -26,21 +30,28 @@ async function serializeSelection(context, selection) {
     tables: []
   };
 
-  // Load values for each table
-  for (const tbl of selection.tables.items) {
-    tbl.load("values");
-  }
+  // If there are tables in the selection, attempt to load their values
+  if (selection.tables.items.length > 0) {
+    for (const tbl of selection.tables.items) {
+      tbl.load("values");
+    }
 
-  await context.sync();
+    await context.sync();
 
-  // Extract tables
-  for (const tbl of selection.tables.items) {
-    content.tables.push(tbl.values);
+    // Extract table data
+    for (const tbl of selection.tables.items) {
+      if (tbl.values) {
+        content.tables.push(tbl.values);
+      }
+    }
   }
 
   return JSON.stringify(content);
 }
 
+/**
+ * Deserialize a JSON string of { text, tables } and insert into the current selection.
+ */
 async function deserializeAndInsert(context, selection, serializedString) {
   const content = JSON.parse(serializedString);
 
@@ -69,9 +80,17 @@ async function deserializeAndInsert(context, selection, serializedString) {
   await context.sync();
 }
 
+/**
+ * Encrypt the currently highlighted content (text + tables) with the chosen key.
+ */
 async function encryptHighlightedContent() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
+
+  if (!key) {
+    console.error("No valid key selected.");
+    return;
+  }
 
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
@@ -94,9 +113,17 @@ async function encryptHighlightedContent() {
   }).catch(err => console.error("Error during encryption:", err));
 }
 
+/**
+ * Decrypt the currently highlighted content with the chosen key.
+ */
 async function decryptHighlightedContent() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
+
+  if (!key) {
+    console.error("No valid key selected.");
+    return;
+  }
 
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
@@ -119,29 +146,100 @@ async function decryptHighlightedContent() {
   }).catch(err => console.error("Error during decryption:", err));
 }
 
-// Encrypt the entire document (only text as an example)
+/**
+ * Serialize the entire document content (text + tables).
+ */
+async function serializeEntireDocument(context) {
+  const body = context.document.body;
+  body.load("text");
+  body.tables.load();
+  await context.sync();
+
+  const content = {
+    text: body.text || "",
+    tables: []
+  };
+
+  if (body.tables.items.length > 0) {
+    for (const tbl of body.tables.items) {
+      tbl.load("values");
+    }
+    await context.sync();
+
+    for (const tbl of body.tables.items) {
+      if (tbl.values) {
+        content.tables.push(tbl.values);
+      }
+    }
+  }
+
+  return JSON.stringify(content);
+}
+
+/**
+ * Deserialize entire document content and insert into document body.
+ */
+async function deserializeAndInsertIntoDocument(context, serializedString) {
+  const content = JSON.parse(serializedString);
+
+  const body = context.document.body;
+  body.clear();
+
+  // Insert the text
+  if (content.text) {
+    body.insertText(content.text, Word.InsertLocation.start);
+  }
+
+  // Insert tables
+  if (content.tables && content.tables.length > 0) {
+    body.insertParagraph("", Word.InsertLocation.end);
+    for (const tableData of content.tables) {
+      const rows = tableData.length;
+      const cols = rows > 0 ? tableData[0].length : 0;
+      if (rows > 0 && cols > 0) {
+        body.insertTable(rows, cols, Word.InsertLocation.end, tableData);
+        body.insertParagraph("", Word.InsertLocation.end);
+      }
+    }
+  }
+
+  await context.sync();
+}
+
+/**
+ * Encrypt the entire document (text + tables).
+ */
 async function encryptEntireDocument() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
-  await Word.run(async (context) => {
-    const body = context.document.body;
-    body.load("text");
-    await context.sync();
+  if (!key) {
+    console.error("No valid key selected.");
+    return;
+  }
 
-    const serialized = JSON.stringify({ text: body.text });
+  await Word.run(async (context) => {
+    const serialized = await serializeEntireDocument(context);
     const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
 
+    const body = context.document.body;
     body.clear();
     body.insertText(encrypted, Word.InsertLocation.start);
     await context.sync();
   }).catch(err => console.error("Error encrypting the entire document:", err));
 }
 
-// Decrypt the entire document (only text as an example)
+/**
+ * Decrypt the entire document (text + tables).
+ */
 async function decryptEntireDocument() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
+
+  if (!key) {
+    console.error("No valid key selected.");
+    return;
+  }
 
   await Word.run(async (context) => {
     const body = context.document.body;
@@ -156,18 +254,17 @@ async function decryptEntireDocument() {
       return;
     }
 
-    const deserialized = JSON.parse(decryptedContent);
-    body.clear();
-    body.insertText(deserialized.text || "", Word.InsertLocation.start);
-    await context.sync();
+    await deserializeAndInsertIntoDocument(context, decryptedContent);
   }).catch(err => console.error("Error decrypting the entire document:", err));
 }
 
-// Insert test content
+/**
+ * Insert test content: A paragraph and a sample table.
+ */
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world! Hello wlrd ! Hello world!", Word.InsertLocation.end);
+    body.insertParagraph("Hello world! Hello worlrd ! Hello world!", Word.InsertLocation.end);
 
     // Insert a sample table for testing
     const tableValues = [
