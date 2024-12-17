@@ -1,5 +1,8 @@
 /* global Word, Office, CryptoJS */
 
+
+
+
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
     document.getElementById("encryptButton").addEventListener("click", encryptHighlightedContent);
@@ -16,7 +19,6 @@ const keys = {
   official: "official-secure-key",
 };
 
-// Serialize selection (unchanged logic)
 async function serializeSelection(context, selection) {
   selection.load("text");
   selection.tables.load();
@@ -129,7 +131,7 @@ async function decryptHighlightedContent() {
   }).catch(err => console.error("Error during decryption:", err));
 }
 
-// Updated entire-document serialization
+//  entire-document serialization
 async function serializeEntireDocument(context) {
   const body = context.document.body;
   body.load("text");
@@ -252,7 +254,7 @@ async function decryptEntireDocument() {
 }
 
 /**
- * Insert test content: A paragraph and a sample table.
+ * Insert test content: hello world and an example table.
  */
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
@@ -269,3 +271,14 @@ async function writeHelloWorlds() {
     await context.sync();
   }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 }
+
+copyContentWithOOXML()
+function copyContentWithOOXML() {
+  Office.context.document.getSelectedDataAsync(
+     Office.CoercionType.Ooxml, (result) => { 
+      if (result.status === Office.AsyncResultStatus.Succeeded) 
+        { copiedOOXML = result.value;
+   contentshowNotification("Copied", "Content copied successfully with formatting."); } else { showNotification("Error", result.error.message); } } ); }
+
+
+   function showNotification(title, message) { const notification = document.getElementById("notification"); notification.innerText = `${title}: ${message}`; }
