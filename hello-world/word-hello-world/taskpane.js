@@ -272,16 +272,16 @@ async function writeHelloWorlds() {
   }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 }
 
-copyContentWithOOXML()
+//copyContentWithOOXML()
 function copyContentWithOOXML() {
   Office.context.document.getSelectedDataAsync(
      Office.CoercionType.Ooxml, (result) => { 
       if (result.status === Office.AsyncResultStatus.Succeeded) 
         { copiedOOXML = result.value;
-   contentshowNotification("Copied", "Content copied successfully with formatting."); } else { showNotification("Error", result.error.message); } } ); }
+ contentshowNotification("Copied", "Content copied successfully with formatting."); } else { showNotification("Error", result.error.message); } } ); }
 
 
    function showNotification(title, message) { const notification = document.getElementById("notification"); notification.innerText = `${title}: ${message}`; }
 
    console.log("OOXML TEST")
-   console.log(copiedOOXML)
+  // console.log(copiedOOXML)
