@@ -180,7 +180,7 @@ async function writeHelloWorlds() {
   try {
     await Word.run(async (context) => {
       const body = context.document.body;
-      body.insertParagraph("Hello world! Hello world. Hello world.", Word.InsertLocation.end);
+      body.insertParagraph("Hello world! Hello world! Hello world.", Word.InsertLocation.end);
     });
   } catch (error) {
     console.error("Error adding Hello World paragraphs:", error);
