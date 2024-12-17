@@ -16,11 +16,8 @@ const keys = {
   official: "official-secure-key",
 };
 
-/**
- * Serialize the user's current selection, including any fully selected tables.
- */
+// Serialize selection (unchanged logic)
 async function serializeSelection(context, selection) {
-  // Load the text and table properties of the selection
   selection.load("text");
   selection.tables.load();
   await context.sync();
@@ -30,7 +27,6 @@ async function serializeSelection(context, selection) {
     tables: []
   };
 
-  // If there are tables in the selection, attempt to load their values
   if (selection.tables.items.length > 0) {
     for (const tbl of selection.tables.items) {
       tbl.load("values");
@@ -38,7 +34,6 @@ async function serializeSelection(context, selection) {
 
     await context.sync();
 
-    // Extract table data
     for (const tbl of selection.tables.items) {
       if (tbl.values) {
         content.tables.push(tbl.values);
@@ -49,9 +44,6 @@ async function serializeSelection(context, selection) {
   return JSON.stringify(content);
 }
 
-/**
- * Deserialize a JSON string of { text, tables } and insert into the current selection.
- */
 async function deserializeAndInsert(context, selection, serializedString) {
   const content = JSON.parse(serializedString);
 
@@ -65,7 +57,6 @@ async function deserializeAndInsert(context, selection, serializedString) {
 
   // Insert the tables if any
   if (content.tables && content.tables.length > 0) {
-    // Move selection to end of inserted text
     selection.insertParagraph("", Word.InsertLocation.end);
     for (const tableData of content.tables) {
       const rows = tableData.length;
@@ -80,9 +71,6 @@ async function deserializeAndInsert(context, selection, serializedString) {
   await context.sync();
 }
 
-/**
- * Encrypt the currently highlighted content (text + tables) with the chosen key.
- */
 async function encryptHighlightedContent() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -98,13 +86,11 @@ async function encryptHighlightedContent() {
     // Serialize the current selection into JSON
     const serialized = await serializeSelection(context, selection);
 
-    // If nothing selected, do nothing
     if (!serialized) {
       console.error("Nothing to encrypt.");
       return;
     }
 
-    // Encrypt
     const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
 
     // Replace selection with encrypted text
@@ -113,9 +99,6 @@ async function encryptHighlightedContent() {
   }).catch(err => console.error("Error during encryption:", err));
 }
 
-/**
- * Decrypt the currently highlighted content with the chosen key.
- */
 async function decryptHighlightedContent() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -146,20 +129,37 @@ async function decryptHighlightedContent() {
   }).catch(err => console.error("Error during decryption:", err));
 }
 
-/**
- * Serialize the entire document content (text + tables).
- */
+// Updated entire-document serialization
 async function serializeEntireDocument(context) {
   const body = context.document.body;
   body.load("text");
   body.tables.load();
+  body.paragraphs.load("items");
   await context.sync();
 
+  // We'll separate text and tables
   const content = {
-    text: body.text || "",
+    text: "",
     tables: []
   };
 
+  // Load parentTableOrNullObject to check which paragraphs are outside tables
+  for (const p of body.paragraphs.items) {
+    p.load("parentTableOrNullObject");
+  }
+  await context.sync();
+
+  // Extract paragraphs outside tables
+  const textParagraphs = [];
+  for (const p of body.paragraphs.items) {
+    if (p.parentTableOrNullObject.isNullObject) {
+      // This paragraph is not inside a table
+      textParagraphs.push(p.text);
+    }
+  }
+  content.text = textParagraphs.join("\n");
+
+  // Extract tables
   if (body.tables.items.length > 0) {
     for (const tbl of body.tables.items) {
       tbl.load("values");
@@ -176,18 +176,17 @@ async function serializeEntireDocument(context) {
   return JSON.stringify(content);
 }
 
-/**
- * Deserialize entire document content and insert into document body.
- */
 async function deserializeAndInsertIntoDocument(context, serializedString) {
   const content = JSON.parse(serializedString);
-
   const body = context.document.body;
   body.clear();
 
-  // Insert the text
+  // Insert the non-table text first
   if (content.text) {
-    body.insertText(content.text, Word.InsertLocation.start);
+    const paragraphs = content.text.split("\n");
+    for (let i = 0; i < paragraphs.length; i++) {
+      body.insertParagraph(paragraphs[i], Word.InsertLocation.end);
+    }
   }
 
   // Insert tables
@@ -206,9 +205,6 @@ async function deserializeAndInsertIntoDocument(context, serializedString) {
   await context.sync();
 }
 
-/**
- * Encrypt the entire document (text + tables).
- */
 async function encryptEntireDocument() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -229,9 +225,6 @@ async function encryptEntireDocument() {
   }).catch(err => console.error("Error encrypting the entire document:", err));
 }
 
-/**
- * Decrypt the entire document (text + tables).
- */
 async function decryptEntireDocument() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -264,7 +257,7 @@ async function decryptEntireDocument() {
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world! Hello worlrd ! Hello world!", Word.InsertLocation.end);
+    body.insertParagraph("Hello world! Hello wolrd ! Hello world!", Word.InsertLocation.end);
 
     // Insert a sample table for testing
     const tableValues = [
