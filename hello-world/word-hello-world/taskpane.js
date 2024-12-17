@@ -128,12 +128,62 @@ async function decryptHighlightedContent() {
   }
 }
 
+// Encrypt the entire document
+async function encryptEntireDocument() {
+  try {
+    const clearanceLevel = document.getElementById("clearance-level").value;
+    const key = keys[clearanceLevel];
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.load("text");
+      await context.sync();
+
+      const serializedContent = JSON.stringify({ text: body.text });
+      const encryptedContent = CryptoJS.AES.encrypt(serializedContent, key).toString();
+
+      body.clear();
+      body.insertText(encryptedContent, Word.InsertLocation.start);
+    });
+  } catch (error) {
+    console.error("Error encrypting the entire document:", error);
+  }
+}
+
+// Decrypt the entire document
+async function decryptEntireDocument() {
+  try {
+    const clearanceLevel = document.getElementById("clearance-level").value;
+    const key = keys[clearanceLevel];
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.load("text");
+      await context.sync();
+
+      const decryptedBytes = CryptoJS.AES.decrypt(body.text, key);
+      const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+      if (!decryptedContent) {
+        console.error("Decryption failed. Check the key and encrypted content.");
+        return;
+      }
+
+      const deserialized = JSON.parse(decryptedContent);
+      body.clear();
+      body.insertText(deserialized.text, Word.InsertLocation.start);
+    });
+  } catch (error) {
+    console.error("Error decrypting the entire document:", error);
+  }
+}
+
 // Add "Hello World" paragraphs
 async function writeHelloWorlds() {
   try {
     await Word.run(async (context) => {
       const body = context.document.body;
-      body.insertParagraph("Hello world! Hello world Hello world!", Word.InsertLocation.end);
+      body.insertParagraph("Hello world! Hello wrld! Hello world!", Word.InsertLocation.end);
     });
   } catch (error) {
     console.error("Error adding Hello World paragraphs:", error);
