@@ -1,11 +1,4 @@
-/* 
-This revised code ensures that tables are fully serialized and deserialized, preserving their structure.
-Key changes include:
-- More careful loading of properties from the Word JavaScript API objects before reading them.
-- Serializing and deserializing both text and tables within the selection.
-- Inserting tables after text restoration to re-form the original structure.
-- Using step-by-step async/await `context.sync()` calls to ensure all data is loaded before processing.
-*/
+/* global Word, Office, CryptoJS */
 
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
@@ -31,35 +24,44 @@ async function serializeContent(selection) {
     tables: []
   };
 
-  const tables = selection.tables;
-  tables.load("items");
+  // Load tables on the selection
+  selection.tables.load("items");
   await selection.context.sync();
 
-  if (tables.items.length > 0) {
-    // Load rows for each table
-    for (const table of tables.items) {
-      table.load("rows");
+  // If there are tables, proceed
+  const tables = selection.tables.items;
+  if (tables && tables.length > 0) {
+    for (const table of tables) {
+      // Load rows for each table
+      table.rows.load("items");
     }
     await selection.context.sync();
 
-    for (const table of tables.items) {
+    // Now we have table rows
+    for (const table of tables) {
       const tableData = [];
+      const rows = table.rows.items;
+      if (!rows) continue;
 
       // Load cells for each row
-      for (const row of table.rows.items) {
-        row.load("cells");
+      for (const row of rows) {
+        row.cells.load("items");
       }
       await selection.context.sync();
 
-      for (const row of table.rows.items) {
-        // Load text for each cell
-        for (const cell of row.cells.items) {
+      for (const row of rows) {
+        const cells = row.cells.items;
+        if (!cells) continue;
+
+        // Load text for each cell body
+        for (const cell of cells) {
           cell.body.load("text");
         }
         await selection.context.sync();
 
+        // After loading text, we can now read the cell text
         const rowData = [];
-        for (const cell of row.cells.items) {
+        for (const cell of cells) {
           rowData.push(cell.body.text);
         }
         tableData.push(rowData);
@@ -86,14 +88,17 @@ async function deserializeAndInsertContent(serializedString, selection) {
 
   // Insert tables if present
   if (serialized.tables && serialized.tables.length > 0) {
+    // Insert a paragraph before starting to insert tables to ensure proper insertion point
+    selection.insertParagraph("", Word.InsertLocation.end);
+
     for (const tableData of serialized.tables) {
       const rowCount = tableData.length;
       const columnCount = rowCount > 0 ? tableData[0].length : 0;
 
       if (rowCount > 0 && columnCount > 0) {
-        // Insert a new paragraph to ensure proper insertion point for table
-        selection.insertParagraph("", Word.InsertLocation.end);
         selection.insertTable(rowCount, columnCount, Word.InsertLocation.end, tableData);
+        // Insert a paragraph after each table to separate it from the next
+        selection.insertParagraph("", Word.InsertLocation.end);
       }
     }
   }
@@ -212,7 +217,7 @@ async function writeHelloWorlds() {
   try {
     await Word.run(async (context) => {
       const body = context.document.body;
-      body.insertParagraph("Hello world Hello world! Hello world!", Word.InsertLocation.end);
+      body.insertParagraph("Hello world! Hello wold! Hello world!", Word.InsertLocation.end);
     });
   } catch (error) {
     console.error("Error adding Hello World paragraphs:", error);
