@@ -1,3 +1,12 @@
+/* 
+This revised code ensures that tables are fully serialized and deserialized, preserving their structure.
+Key changes include:
+- More careful loading of properties from the Word JavaScript API objects before reading them.
+- Serializing and deserializing both text and tables within the selection.
+- Inserting tables after text restoration to re-form the original structure.
+- Using step-by-step async/await `context.sync()` calls to ensure all data is loaded before processing.
+*/
+
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
     // Attach button handlers
@@ -15,57 +24,76 @@ const keys = {
   official: "official-secure-key",
 };
 
-// Serialize the content
+// Serialize the content (text + tables) from the selection
 async function serializeContent(selection) {
   const serialized = {
     text: selection.text || "",
-    tables: [],
+    tables: []
   };
 
-  if (selection.tables && selection.tables.items.length > 0) {
-    selection.tables.load("items");
+  const tables = selection.tables;
+  tables.load("items");
+  await selection.context.sync();
+
+  if (tables.items.length > 0) {
+    // Load rows for each table
+    for (const table of tables.items) {
+      table.load("rows");
+    }
     await selection.context.sync();
 
-    for (const table of selection.tables.items) {
-      table.rows.load("items");
+    for (const table of tables.items) {
+      const tableData = [];
+
+      // Load cells for each row
+      for (const row of table.rows.items) {
+        row.load("cells");
+      }
       await selection.context.sync();
 
-      const serializedTable = [];
       for (const row of table.rows.items) {
-        row.cells.load("items/body/text");
+        // Load text for each cell
+        for (const cell of row.cells.items) {
+          cell.body.load("text");
+        }
         await selection.context.sync();
 
-        const serializedRow = row.cells.items.map((cell) => cell.body.text);
-        serializedTable.push(serializedRow);
+        const rowData = [];
+        for (const cell of row.cells.items) {
+          rowData.push(cell.body.text);
+        }
+        tableData.push(rowData);
       }
-      serialized.tables.push(serializedTable);
+
+      serialized.tables.push(tableData);
     }
   }
 
   return JSON.stringify(serialized);
 }
 
-// Deserialize and insert content
+// Deserialize JSON content (with text and tables) and insert into the selection
 async function deserializeAndInsertContent(serializedString, selection) {
   const serialized = JSON.parse(serializedString);
 
-  // Clear the current selection
+  // Clear the current selection before inserting
   selection.insertText("", Word.InsertLocation.replace);
 
-  // Insert text if any
+  // Insert text if present
   if (serialized.text) {
     selection.insertText(serialized.text, Word.InsertLocation.start);
   }
 
-  // Reconstruct tables if any
+  // Insert tables if present
   if (serialized.tables && serialized.tables.length > 0) {
     for (const tableData of serialized.tables) {
       const rowCount = tableData.length;
       const columnCount = rowCount > 0 ? tableData[0].length : 0;
 
       if (rowCount > 0 && columnCount > 0) {
-        const newTable = selection.insertTable(rowCount, columnCount, Word.InsertLocation.end, tableData);
-        await newTable.context.sync();
+        // Insert a new paragraph to ensure proper insertion point for table
+        selection.insertParagraph("", Word.InsertLocation.end);
+        selection.insertTable(rowCount, columnCount, Word.InsertLocation.end, tableData);
       }
     }
   }
@@ -79,7 +107,8 @@ async function encryptHighlightedContent() {
 
     await Word.run(async (context) => {
       const selection = context.document.getSelection();
-      selection.load("text, tables/items");
+      selection.load("text");
+      selection.tables.load("items");
       await context.sync();
 
       if (!selection.text && selection.tables.items.length === 0) {
@@ -89,7 +118,6 @@ async function encryptHighlightedContent() {
 
       const serializedContent = await serializeContent(selection);
       const encryptedContent = CryptoJS.AES.encrypt(serializedContent, key).toString();
-
       selection.insertText(encryptedContent, Word.InsertLocation.replace);
     });
   } catch (error) {
@@ -122,13 +150,14 @@ async function decryptHighlightedContent() {
       }
 
       await deserializeAndInsertContent(decryptedContent, selection);
+      await context.sync();
     });
   } catch (error) {
     console.error("Error during decryption:", error);
   }
 }
 
-// Encrypt the entire document
+// Encrypt the entire document (Note: currently only encrypts text of entire doc)
 async function encryptEntireDocument() {
   try {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -150,7 +179,7 @@ async function encryptEntireDocument() {
   }
 }
 
-// Decrypt the entire document
+// Decrypt the entire document (Note: currently only decrypts text for entire doc)
 async function decryptEntireDocument() {
   try {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -178,12 +207,12 @@ async function decryptEntireDocument() {
   }
 }
 
-// Add "Hello World" paragraphs
+// Add "Hello World" paragraphs for testing
 async function writeHelloWorlds() {
   try {
     await Word.run(async (context) => {
       const body = context.document.body;
-      body.insertParagraph("Hello world! Hello wrld! Hello world!", Word.InsertLocation.end);
+      body.insertParagraph("Hello world Hello world! Hello world!", Word.InsertLocation.end);
     });
   } catch (error) {
     console.error("Error adding Hello World paragraphs:", error);
