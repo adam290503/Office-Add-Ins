@@ -17,50 +17,25 @@ const keys = {
 };
 
 async function serializeSelection(context, selection) {
-  // Load the selection text and tables
   selection.load("text");
-  selection.tables.load("items");
+  selection.tables.load();
   await context.sync();
 
-  const content = { text: selection.text || "", tables: [] };
+  const content = {
+    text: selection.text || "",
+    tables: []
+  };
 
-  const tables = selection.tables.items;
-  if (!tables || tables.length === 0) {
-    return JSON.stringify(content);
+  // Load values for each table
+  for (const tbl of selection.tables.items) {
+    tbl.load("values");
   }
 
-  // Load rows for all tables
-  for (const tbl of tables) {
-    tbl.rows.load("items");
-  }
   await context.sync();
 
-  for (const tbl of tables) {
-    const tableData = [];
-    const rows = tbl.rows.items || [];
-    // Load cells for each row
-    for (const row of rows) {
-      row.cells.load("items");
-    }
-    await context.sync();
-
-    // Now load text for each cell
-    for (const row of rows) {
-      const cells = row.cells.items || [];
-      for (const cell of cells) {
-        cell.body.load("text");
-      }
-    }
-    await context.sync();
-
-    // Extract the text now that it's loaded
-    for (const row of rows) {
-      const rowCells = row.cells.items || [];
-      const rowData = rowCells.map(cell => cell.body.text || "");
-      tableData.push(rowData);
-    }
-
-    content.tables.push(tableData);
+  // Extract tables
+  for (const tbl of selection.tables.items) {
+    content.tables.push(tbl.values);
   }
 
   return JSON.stringify(content);
@@ -69,16 +44,17 @@ async function serializeSelection(context, selection) {
 async function deserializeAndInsert(context, selection, serializedString) {
   const content = JSON.parse(serializedString);
 
-  // Clear selection
+  // Clear the current selection
   selection.insertText("", Word.InsertLocation.replace);
 
-  // Insert text first
+  // Insert the text first
   if (content.text) {
     selection.insertText(content.text, Word.InsertLocation.start);
   }
 
-  // Insert tables if any
+  // Insert the tables if any
   if (content.tables && content.tables.length > 0) {
+    // Move selection to end of inserted text
     selection.insertParagraph("", Word.InsertLocation.end);
     for (const tableData of content.tables) {
       const rows = tableData.length;
@@ -191,7 +167,15 @@ async function decryptEntireDocument() {
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world! Hello ! Hello world!", Word.InsertLocation.end);
+    body.insertParagraph("Hello world! Hello wlrd ! Hello world!", Word.InsertLocation.end);
+
+    // Insert a sample table for testing
+    const tableValues = [
+      ["Name", "Age"],
+      ["Alice", "30"],
+      ["Bob", "25"]
+    ];
+    body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
     await context.sync();
   }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 }
