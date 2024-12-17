@@ -2,7 +2,6 @@
 
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
-    // Attach button handlers
     document.getElementById("encryptButton").addEventListener("click", encryptHighlightedContent);
     document.getElementById("decryptButton").addEventListener("click", decryptHighlightedContent);
     document.getElementById("writeButton").addEventListener("click", writeHelloWorlds);
@@ -17,209 +16,182 @@ const keys = {
   official: "official-secure-key",
 };
 
-// Serialize the content (text + tables) from the selection
-async function serializeContent(selection) {
-  const serialized = {
-    text: selection.text || "",
-    tables: []
-  };
-
-  // Load tables on the selection
+async function serializeSelection(context, selection) {
+  // Load the selection text and tables
+  selection.load("text");
   selection.tables.load("items");
-  await selection.context.sync();
+  await context.sync();
 
-  // If there are tables, proceed
+  const content = { text: selection.text || "", tables: [] };
+
   const tables = selection.tables.items;
-  if (tables && tables.length > 0) {
-    for (const table of tables) {
-      // Load rows for each table
-      table.rows.load("items");
-    }
-    await selection.context.sync();
-
-    // Now we have table rows
-    for (const table of tables) {
-      const tableData = [];
-      const rows = table.rows.items;
-      if (!rows) continue;
-
-      // Load cells for each row
-      for (const row of rows) {
-        row.cells.load("items");
-      }
-      await selection.context.sync();
-
-      for (const row of rows) {
-        const cells = row.cells.items;
-        if (!cells) continue;
-
-        // Load text for each cell body
-        for (const cell of cells) {
-          cell.body.load("text");
-        }
-        await selection.context.sync();
-
-        // After loading text, we can now read the cell text
-        const rowData = [];
-        for (const cell of cells) {
-          rowData.push(cell.body.text);
-        }
-        tableData.push(rowData);
-      }
-
-      serialized.tables.push(tableData);
-    }
+  if (!tables || tables.length === 0) {
+    return JSON.stringify(content);
   }
 
-  return JSON.stringify(serialized);
+  // Load rows for all tables
+  for (const tbl of tables) {
+    tbl.rows.load("items");
+  }
+  await context.sync();
+
+  for (const tbl of tables) {
+    const tableData = [];
+    const rows = tbl.rows.items || [];
+    // Load cells for each row
+    for (const row of rows) {
+      row.cells.load("items");
+    }
+    await context.sync();
+
+    // Now load text for each cell
+    for (const row of rows) {
+      const cells = row.cells.items || [];
+      for (const cell of cells) {
+        cell.body.load("text");
+      }
+    }
+    await context.sync();
+
+    // Extract the text now that it's loaded
+    for (const row of rows) {
+      const rowCells = row.cells.items || [];
+      const rowData = rowCells.map(cell => cell.body.text || "");
+      tableData.push(rowData);
+    }
+
+    content.tables.push(tableData);
+  }
+
+  return JSON.stringify(content);
 }
 
-// Deserialize JSON content (with text and tables) and insert into the selection
-async function deserializeAndInsertContent(serializedString, selection) {
-  const serialized = JSON.parse(serializedString);
+async function deserializeAndInsert(context, selection, serializedString) {
+  const content = JSON.parse(serializedString);
 
-  // Clear the current selection before inserting
+  // Clear selection
   selection.insertText("", Word.InsertLocation.replace);
 
-  // Insert text if present
-  if (serialized.text) {
-    selection.insertText(serialized.text, Word.InsertLocation.start);
+  // Insert text first
+  if (content.text) {
+    selection.insertText(content.text, Word.InsertLocation.start);
   }
 
-  // Insert tables if present
-  if (serialized.tables && serialized.tables.length > 0) {
-    // Insert a paragraph before starting to insert tables to ensure proper insertion point
+  // Insert tables if any
+  if (content.tables && content.tables.length > 0) {
     selection.insertParagraph("", Word.InsertLocation.end);
-
-    for (const tableData of serialized.tables) {
-      const rowCount = tableData.length;
-      const columnCount = rowCount > 0 ? tableData[0].length : 0;
-
-      if (rowCount > 0 && columnCount > 0) {
-        selection.insertTable(rowCount, columnCount, Word.InsertLocation.end, tableData);
-        // Insert a paragraph after each table to separate it from the next
+    for (const tableData of content.tables) {
+      const rows = tableData.length;
+      const cols = rows > 0 ? tableData[0].length : 0;
+      if (rows > 0 && cols > 0) {
+        selection.insertTable(rows, cols, Word.InsertLocation.end, tableData);
         selection.insertParagraph("", Word.InsertLocation.end);
       }
     }
   }
+
+  await context.sync();
 }
 
-// Encrypt highlighted content
 async function encryptHighlightedContent() {
-  try {
-    const clearanceLevel = document.getElementById("clearance-level").value;
-    const key = keys[clearanceLevel];
+  const clearanceLevel = document.getElementById("clearance-level").value;
+  const key = keys[clearanceLevel];
 
-    await Word.run(async (context) => {
-      const selection = context.document.getSelection();
-      selection.load("text");
-      selection.tables.load("items");
-      await context.sync();
+  await Word.run(async (context) => {
+    const selection = context.document.getSelection();
 
-      if (!selection.text && selection.tables.items.length === 0) {
-        console.error("Nothing to encrypt.");
-        return;
-      }
+    // Serialize the current selection into JSON
+    const serialized = await serializeSelection(context, selection);
 
-      const serializedContent = await serializeContent(selection);
-      const encryptedContent = CryptoJS.AES.encrypt(serializedContent, key).toString();
-      selection.insertText(encryptedContent, Word.InsertLocation.replace);
-    });
-  } catch (error) {
-    console.error("Error during encryption:", error);
-  }
+    // If nothing selected, do nothing
+    if (!serialized) {
+      console.error("Nothing to encrypt.");
+      return;
+    }
+
+    // Encrypt
+    const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
+
+    // Replace selection with encrypted text
+    selection.insertText(encrypted, Word.InsertLocation.replace);
+    await context.sync();
+  }).catch(err => console.error("Error during encryption:", err));
 }
 
-// Decrypt highlighted content
 async function decryptHighlightedContent() {
-  try {
-    const clearanceLevel = document.getElementById("clearance-level").value;
-    const key = keys[clearanceLevel];
+  const clearanceLevel = document.getElementById("clearance-level").value;
+  const key = keys[clearanceLevel];
 
-    await Word.run(async (context) => {
-      const selection = context.document.getSelection();
-      selection.load("text");
-      await context.sync();
+  await Word.run(async (context) => {
+    const selection = context.document.getSelection();
+    selection.load("text");
+    await context.sync();
 
-      if (!selection.text) {
-        console.error("Nothing to decrypt.");
-        return;
-      }
+    if (!selection.text) {
+      console.error("Nothing to decrypt.");
+      return;
+    }
 
-      const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
-      const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
+    const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    if (!decryptedContent) {
+      console.error("Decryption failed. Check the key and content.");
+      return;
+    }
 
-      if (!decryptedContent) {
-        console.error("Decryption failed. Check the key and encrypted content.");
-        return;
-      }
-
-      await deserializeAndInsertContent(decryptedContent, selection);
-      await context.sync();
-    });
-  } catch (error) {
-    console.error("Error during decryption:", error);
-  }
+    await deserializeAndInsert(context, selection, decryptedContent);
+  }).catch(err => console.error("Error during decryption:", err));
 }
 
-// Encrypt the entire document (Note: currently only encrypts text of entire doc)
+// Encrypt the entire document (only text as an example)
 async function encryptEntireDocument() {
-  try {
-    const clearanceLevel = document.getElementById("clearance-level").value;
-    const key = keys[clearanceLevel];
+  const clearanceLevel = document.getElementById("clearance-level").value;
+  const key = keys[clearanceLevel];
 
-    await Word.run(async (context) => {
-      const body = context.document.body;
-      body.load("text");
-      await context.sync();
+  await Word.run(async (context) => {
+    const body = context.document.body;
+    body.load("text");
+    await context.sync();
 
-      const serializedContent = JSON.stringify({ text: body.text });
-      const encryptedContent = CryptoJS.AES.encrypt(serializedContent, key).toString();
+    const serialized = JSON.stringify({ text: body.text });
+    const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
 
-      body.clear();
-      body.insertText(encryptedContent, Word.InsertLocation.start);
-    });
-  } catch (error) {
-    console.error("Error encrypting the entire document:", error);
-  }
+    body.clear();
+    body.insertText(encrypted, Word.InsertLocation.start);
+    await context.sync();
+  }).catch(err => console.error("Error encrypting the entire document:", err));
 }
 
-// Decrypt the entire document (Note: currently only decrypts text for entire doc)
+// Decrypt the entire document (only text as an example)
 async function decryptEntireDocument() {
-  try {
-    const clearanceLevel = document.getElementById("clearance-level").value;
-    const key = keys[clearanceLevel];
+  const clearanceLevel = document.getElementById("clearance-level").value;
+  const key = keys[clearanceLevel];
 
-    await Word.run(async (context) => {
-      const body = context.document.body;
-      body.load("text");
-      await context.sync();
+  await Word.run(async (context) => {
+    const body = context.document.body;
+    body.load("text");
+    await context.sync();
 
-      const decryptedBytes = CryptoJS.AES.decrypt(body.text, key);
-      const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    const decryptedBytes = CryptoJS.AES.decrypt(body.text, key);
+    const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
-      if (!decryptedContent) {
-        console.error("Decryption failed. Check the key and encrypted content.");
-        return;
-      }
+    if (!decryptedContent) {
+      console.error("Decryption failed. Check the key and content.");
+      return;
+    }
 
-      const deserialized = JSON.parse(decryptedContent);
-      body.clear();
-      body.insertText(deserialized.text, Word.InsertLocation.start);
-    });
-  } catch (error) {
-    console.error("Error decrypting the entire document:", error);
-  }
+    const deserialized = JSON.parse(decryptedContent);
+    body.clear();
+    body.insertText(deserialized.text || "", Word.InsertLocation.start);
+    await context.sync();
+  }).catch(err => console.error("Error decrypting the entire document:", err));
 }
 
-// Add "Hello World" paragraphs for testing
+// Insert test content
 async function writeHelloWorlds() {
-  try {
-    await Word.run(async (context) => {
-      const body = context.document.body;
-      body.insertParagraph("Hello world! Hello wold! Hello world!", Word.InsertLocation.end);
-    });
-  } catch (error) {
-    console.error("Error adding Hello World paragraphs:", error);
-  }
+  await Word.run(async (context) => {
+    const body = context.document.body;
+    body.insertParagraph("Hello world! Hello ! Hello world!", Word.InsertLocation.end);
+    await context.sync();
+  }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 }
