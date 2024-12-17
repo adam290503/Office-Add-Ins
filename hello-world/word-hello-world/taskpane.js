@@ -8,7 +8,13 @@ Office.onReady((info) => {
     document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
     document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
 
-    // Call copyContentWithOOXML after Office is ready
+    // Add a handler to update OOXML on selection change
+    Office.context.document.addHandlerAsync(
+      Office.EventType.DocumentSelectionChanged,
+      () => copyContentWithOOXML()
+    );
+
+    // Call copyContentWithOOXML initially
     copyContentWithOOXML();
   }
 });
@@ -28,9 +34,10 @@ function copyContentWithOOXML() {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         copiedOOXML = result.value;
         showNotification("Copied", "Content copied successfully with formatting.");
-        console.log("OOXML TEST:", copiedOOXML); // Log the copied content
+        console.log("OOXML TEST:", copiedOOXML); // Log the updated content
       } else {
         showNotification("Error", result.error.message);
+        console.error("Error retrieving OOXML:", result.error.message);
       }
     }
   );
