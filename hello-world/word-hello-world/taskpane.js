@@ -33,9 +33,6 @@ function copyContentWithOOXML() {
         copiedOOXML = result.value;
         showNotification("Copied", "Content copied successfully with formatting.");
         console.log("OOXML TEST:", copiedOOXML);
-
-        // Automatically insert the copied OOXML back into the document
-        insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
       } else {
         showNotification("Error", result.error.message);
         console.error("Error retrieving OOXML:", result.error.message);
@@ -44,41 +41,14 @@ function copyContentWithOOXML() {
   );
 }
 
-async function insertLastCopiedOOXML(insertLocation = Word.InsertLocation.replace) {
-  if (!copiedOOXML) {
-    showNotification("Error", "No OOXML content available to insert.");
-    return;
-  }
-
-  await Word.run(async (context) => {
-    const body = context.document.body;
-    body.insertOoxml(copiedOOXML, insertLocation);
-    await context.sync();
-    showNotification("Success", "OOXML content inserted into the document.");
-  }).catch((err) => {
-    console.error("Error inserting OOXML:", err);
-    showNotification("Error", "Could not insert OOXML.");
-  });
-}
-
-// Attach the paste OOXML function to the button for manual insertion
-document.getElementById("pasteOOXMLButton").addEventListener("click", () => {
-  insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
-});
-
-function showNotification(title, message) {
-  // Check if a notification element exists in the DOM
-  const notificationElement = document.getElementById("notification");
-  if (notificationElement) {
-    // Update the notification content
-    notificationElement.innerText = `${title}: ${message}`;
+/*function showNotification(title, message) {
+  const notification = document.getElementById("notification");
+  if (notification) {
+    notification.innerText = `${title}: ${message}`;
   } else {
-    // If no notification element exists, log to the console
     console.log(`${title}: ${message}`);
   }
-}
-
-
+}*/
 
 async function serializeSelection(context, selection) {
   selection.load("text");
@@ -306,7 +276,7 @@ async function writeHelloWorlds() {
 
     const tableValues = [
       ["Name", "Age"],
-      ["Alice", "31"],
+      ["Alice", "30"],
       ["Bob", "25"]
     ];
     body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
