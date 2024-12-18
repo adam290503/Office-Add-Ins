@@ -56,15 +56,16 @@ async function encryptHighlightedOOXML() {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const ooxml = result.value;
 
-        // Hash the OOXML before encryption
         const hash = CryptoJS.SHA256(ooxml).toString();
         console.log("OOXML Hash:", hash);
 
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
+        
+        const abc = setKeyPair(encrypted,"--001--");
 
         Word.run(async (context) => {
           const selection = context.document.getSelection();
-          selection.insertText(encrypted, Word.InsertLocation.replace);
+          selection.insertText("--001--", Word.InsertLocation.replace);
           await context.sync();
         }).catch(err => console.error("Error inserting encrypted OOXML:", err));
       } else {
@@ -206,9 +207,12 @@ async function decryptHighlightedContent() {
     if (!selection.text) {
       console.error("Nothing to decrypt.");
       return;
+      
     }
 
-    const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
+     const keypair = getKeyPair()
+
+    const decryptedBytes = CryptoJS.AES.decrypt(keypair, key);
     const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
     if (!decryptedContent) {
       console.error("Decryption failed. Check the key and content.");
@@ -347,3 +351,29 @@ async function writeHelloWorlds() {
     await context.sync();
   }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 }
+
+
+
+function setKeyPair(encrypted,friendlyIdent) { const keyPair = { "public-key": friendlyIdent,"EncryptedBlock": encrypted};
+Office.context.document.properties.custom.setAsync( "KeyPair", JSON.stringify(keyPair), (result) => { 
+  if (result.status=== Office.AsyncResultStatus.Succeeded) {
+     console.log("Key pair stored successfully."); } 
+     else { console.error("Failed to store key pair:", result.error.message); } } ); }
+ 
+
+     function getKeyPair() {
+      Office.context.document.properties.custom.getAsync(
+       "KeyPair",
+        (result) => {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            const keyPair = JSON.parse(result.value);
+            console.log("Retrieved Key Pair:", keyPair);
+            console.log("EncryptedBlock");
+            console.log(keyPair.EncryptedBlock);
+            return keyPair.EncryptedBlock;
+          } else {
+            console.error("Failed to retrieve key pair:", result.error.message);
+          }
+        }
+      );
+    }
