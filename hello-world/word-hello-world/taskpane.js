@@ -8,13 +8,11 @@ Office.onReady((info) => {
     document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
     document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
 
-    // Add a handler to update OOXML on selection change
     Office.context.document.addHandlerAsync(
       Office.EventType.DocumentSelectionChanged,
       () => copyContentWithOOXML()
     );
 
-    // Call copyContentWithOOXML initially
     copyContentWithOOXML();
   }
 });
@@ -25,7 +23,7 @@ const keys = {
   official: "official-secure-key",
 };
 
-let copiedOOXML = ""; // Declare global variable for OOXML content
+let copiedOOXML = "";
 
 function copyContentWithOOXML() {
   Office.context.document.getSelectedDataAsync(
@@ -34,7 +32,7 @@ function copyContentWithOOXML() {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         copiedOOXML = result.value;
         showNotification("Copied", "Content copied successfully with formatting.");
-        console.log("OOXML TEST:", copiedOOXML); // Log the updated content
+        console.log("OOXML TEST:", copiedOOXML);
       } else {
         showNotification("Error", result.error.message);
         console.error("Error retrieving OOXML:", result.error.message);
@@ -50,6 +48,57 @@ function showNotification(title, message) {
   } else {
     console.log(`${title}: ${message}`);
   }
+}
+
+async function serializeSelection(context, selection) {
+  selection.load("text");
+  selection.tables.load();
+  await context.sync();
+
+  const content = {
+    text: selection.text || "",
+    tables: []
+  };
+
+  if (selection.tables.items.length > 0) {
+    for (const tbl of selection.tables.items) {
+      tbl.load("values");
+    }
+
+    await context.sync();
+
+    for (const tbl of selection.tables.items) {
+      if (tbl.values) {
+        content.tables.push(tbl.values);
+      }
+    }
+  }
+
+  return JSON.stringify(content);
+}
+
+async function deserializeAndInsert(context, selection, serializedString) {
+  const content = JSON.parse(serializedString);
+
+  selection.insertText("", Word.InsertLocation.replace);
+
+  if (content.text) {
+    selection.insertText(content.text, Word.InsertLocation.start);
+  }
+
+  if (content.tables && content.tables.length > 0) {
+    selection.insertParagraph("", Word.InsertLocation.end);
+    for (const tableData of content.tables) {
+      const rows = tableData.length;
+      const cols = rows > 0 ? tableData[0].length : 0;
+      if (rows > 0 && cols > 0) {
+        selection.insertTable(rows, cols, Word.InsertLocation.end, tableData);
+        selection.insertParagraph("", Word.InsertLocation.end);
+      }
+    }
+  }
+
+  await context.sync();
 }
 
 async function encryptHighlightedContent() {
@@ -106,19 +155,72 @@ async function decryptHighlightedContent() {
   }).catch(err => console.error("Error during decryption:", err));
 }
 
-async function writeHelloWorlds() {
-  await Word.run(async (context) => {
-    const body = context.document.body;
-    body.insertParagraph("Hello world! Hello world!", Word.InsertLocation.end);
+async function serializeEntireDocument(context) {
+  const body = context.document.body;
+  body.load("text");
+  body.tables.load();
+  body.paragraphs.load("items");
+  await context.sync();
 
-    const tableValues = [
-      ["Name", "Age"],
-      ["Alice", "30"],
-      ["Bob", "25"]
-    ];
-    body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
+  const content = {
+    text: "",
+    tables: []
+  };
+
+  for (const p of body.paragraphs.items) {
+    p.load("parentTableOrNullObject");
+  }
+  await context.sync();
+
+  const textParagraphs = [];
+  for (const p of body.paragraphs.items) {
+    if (p.parentTableOrNullObject.isNullObject) {
+      textParagraphs.push(p.text);
+    }
+  }
+  content.text = textParagraphs.join("\n");
+
+  if (body.tables.items.length > 0) {
+    for (const tbl of body.tables.items) {
+      tbl.load("values");
+    }
     await context.sync();
-  }).catch(err => console.error("Error adding Hello World paragraphs:", err));
+
+    for (const tbl of body.tables.items) {
+      if (tbl.values) {
+        content.tables.push(tbl.values);
+      }
+    }
+  }
+
+  return JSON.stringify(content);
+}
+
+async function deserializeAndInsertIntoDocument(context, serializedString) {
+  const content = JSON.parse(serializedString);
+  const body = context.document.body;
+  body.clear();
+
+  if (content.text) {
+    const paragraphs = content.text.split("\n");
+    for (let i = 0; i < paragraphs.length; i++) {
+      body.insertParagraph(paragraphs[i], Word.InsertLocation.end);
+    }
+  }
+
+  if (content.tables && content.tables.length > 0) {
+    body.insertParagraph("", Word.InsertLocation.end);
+    for (const tableData of content.tables) {
+      const rows = tableData.length;
+      const cols = rows > 0 ? tableData[0].length : 0;
+      if (rows > 0 && cols > 0) {
+        body.insertTable(rows, cols, Word.InsertLocation.end, tableData);
+        body.insertParagraph("", Word.InsertLocation.end);
+      }
+    }
+  }
+
+  await context.sync();
 }
 
 async function encryptEntireDocument() {
@@ -165,4 +267,19 @@ async function decryptEntireDocument() {
 
     await deserializeAndInsertIntoDocument(context, decryptedContent);
   }).catch(err => console.error("Error decrypting the entire document:", err));
+}
+
+async function writeHelloWorlds() {
+  await Word.run(async (context) => {
+    const body = context.document.body;
+    body.insertParagraph("Hello world! Hello world!", Word.InsertLocation.end);
+
+    const tableValues = [
+      ["Name", "Age"],
+      ["Alice", "30"],
+      ["Bob", "25"]
+    ];
+    body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
+    await context.sync();
+  }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 }
