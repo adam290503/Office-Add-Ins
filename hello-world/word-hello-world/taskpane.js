@@ -33,6 +33,9 @@ function copyContentWithOOXML() {
         copiedOOXML = result.value;
         showNotification("Copied", "Content copied successfully with formatting.");
         console.log("OOXML TEST:", copiedOOXML);
+
+        // Automatically insert the copied OOXML back into the document
+        insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
       } else {
         showNotification("Error", result.error.message);
         console.error("Error retrieving OOXML:", result.error.message);
@@ -41,28 +44,27 @@ function copyContentWithOOXML() {
   );
 }
 
-function pasteOOXML() {
+async function insertLastCopiedOOXML(insertLocation = Word.InsertLocation.replace) {
   if (!copiedOOXML) {
-    showNotification("Error", "No OOXML content available to paste.");
+    showNotification("Error", "No OOXML content available to insert.");
     return;
   }
 
-  Office.context.document.setSelectedDataAsync(
-    copiedOOXML,
-    { coercionType: Office.CoercionType.Ooxml },
-    (result) => {
-      if (result.status === Office.AsyncResultStatus.Succeeded) {
-        showNotification("Success", "OOXML content pasted successfully.");
-      } else {
-        showNotification("Error", result.error.message);
-        console.error("Error pasting OOXML:", result.error.message);
-      }
-    }
-  );
+  await Word.run(async (context) => {
+    const body = context.document.body;
+    body.insertOoxml(copiedOOXML, insertLocation);
+    await context.sync();
+    showNotification("Success", "OOXML content inserted into the document.");
+  }).catch((err) => {
+    console.error("Error inserting OOXML:", err);
+    showNotification("Error", "Could not insert OOXML.");
+  });
 }
 
-// Attach the paste OOXML function to the button
-document.getElementById("pasteOOXMLButton").addEventListener("click", pasteOOXML);
+// Attach the paste OOXML function to the button for manual insertion
+document.getElementById("pasteOOXMLButton").addEventListener("click", () => {
+  insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
+});
 
 
 async function serializeSelection(context, selection) {
@@ -287,7 +289,7 @@ async function decryptEntireDocument() {
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world! hello Hello world!", Word.InsertLocation.end);
+    body.insertParagraph("Hello world Hello world", Word.InsertLocation.end);
 
     const tableValues = [
       ["Name", "Age"],
