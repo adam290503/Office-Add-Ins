@@ -55,6 +55,11 @@ async function encryptHighlightedOOXML() {
     (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const ooxml = result.value;
+
+        // Hash the OOXML before encryption
+        const hash = CryptoJS.SHA256(ooxml).toString();
+        console.log("OOXML Hash:", hash);
+
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
 
         Word.run(async (context) => {
@@ -96,6 +101,10 @@ async function decryptHighlightedOOXML() {
         console.error("Decryption failed. Check the key and content.");
         return;
       }
+
+      // Hash the decrypted OOXML to verify integrity
+      const hash = CryptoJS.SHA256(decryptedOOXML).toString();
+      console.log("Decrypted OOXML Hash:", hash);
 
       selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
       await context.sync();
