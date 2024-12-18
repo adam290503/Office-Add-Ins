@@ -287,7 +287,7 @@ async function decryptEntireDocument() {
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world! Hello world!", Word.InsertLocation.end);
+    body.insertParagraph("Hello world! hello Hello world!", Word.InsertLocation.end);
 
     const tableValues = [
       ["Name", "Age"],
