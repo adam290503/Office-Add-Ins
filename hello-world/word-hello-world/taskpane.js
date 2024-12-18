@@ -66,6 +66,19 @@ document.getElementById("pasteOOXMLButton").addEventListener("click", () => {
   insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
 });
 
+function showNotification(title, message) {
+  // Check if a notification element exists in the DOM
+  const notificationElement = document.getElementById("notification");
+  if (notificationElement) {
+    // Update the notification content
+    notificationElement.innerText = `${title}: ${message}`;
+  } else {
+    // If no notification element exists, log to the console
+    console.log(`${title}: ${message}`);
+  }
+}
+
+
 
 async function serializeSelection(context, selection) {
   selection.load("text");
