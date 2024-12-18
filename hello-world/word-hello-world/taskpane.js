@@ -306,7 +306,7 @@ async function writeHelloWorlds() {
 
     const tableValues = [
       ["Name", "Age"],
-      ["Alice", "30"],
+      ["Alice", "31"],
       ["Bob", "25"]
     ];
     body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
