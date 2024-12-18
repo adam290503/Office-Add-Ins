@@ -7,6 +7,9 @@ Office.onReady((info) => {
     document.getElementById("writeButton").addEventListener("click", writeHelloWorlds);
     document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
     document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
+    document.getElementById("printOOXMLButton").addEventListener("click", printHighlightedOOXML);
+    document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
+    document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
 
     Office.context.document.addHandlerAsync(
       Office.EventType.DocumentSelectionChanged,
@@ -31,77 +34,28 @@ function copyContentWithOOXML() {
     (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         copiedOOXML = result.value;
-        showNotification("Copied", "Content copied successfully with formatting.");
-        console.log("OOXML TEST:", copiedOOXML);
+        console.log("Copied OOXML:", copiedOOXML);
       } else {
-        showNotification("Error", result.error.message);
         console.error("Error retrieving OOXML:", result.error.message);
       }
     }
   );
 }
 
-/*function showNotification(title, message) {
-  const notification = document.getElementById("notification");
-  if (notification) {
-    notification.innerText = `${title}: ${message}`;
-  } else {
-    console.log(`${title}: ${message}`);
-  }
-}*/
-
-async function serializeSelection(context, selection) {
-  selection.load("text");
-  selection.tables.load();
-  await context.sync();
-
-  const content = {
-    text: selection.text || "",
-    tables: []
-  };
-
-  if (selection.tables.items.length > 0) {
-    for (const tbl of selection.tables.items) {
-      tbl.load("values");
-    }
-
-    await context.sync();
-
-    for (const tbl of selection.tables.items) {
-      if (tbl.values) {
-        content.tables.push(tbl.values);
+async function printHighlightedOOXML() {
+  Office.context.document.getSelectedDataAsync(
+    Office.CoercionType.Ooxml,
+    (result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        console.log("Highlighted OOXML:", result.value);
+      } else {
+        console.error("Error retrieving highlighted OOXML:", result.error.message);
       }
     }
-  }
-
-  return JSON.stringify(content);
+  );
 }
 
-async function deserializeAndInsert(context, selection, serializedString) {
-  const content = JSON.parse(serializedString);
-
-  selection.insertText("", Word.InsertLocation.replace);
-
-  if (content.text) {
-    selection.insertText(content.text, Word.InsertLocation.start);
-  }
-
-  if (content.tables && content.tables.length > 0) {
-    selection.insertParagraph("", Word.InsertLocation.end);
-    for (const tableData of content.tables) {
-      const rows = tableData.length;
-      const cols = rows > 0 ? tableData[0].length : 0;
-      if (rows > 0 && cols > 0) {
-        selection.insertTable(rows, cols, Word.InsertLocation.end, tableData);
-        selection.insertParagraph("", Word.InsertLocation.end);
-      }
-    }
-  }
-
-  await context.sync();
-}
-
-async function encryptHighlightedContent() {
+async function encryptHighlightedOOXML() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
@@ -110,22 +64,26 @@ async function encryptHighlightedContent() {
     return;
   }
 
-  await Word.run(async (context) => {
-    const selection = context.document.getSelection();
-    const serialized = await serializeSelection(context, selection);
+  Office.context.document.getSelectedDataAsync(
+    Office.CoercionType.Ooxml,
+    (result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        const ooxml = result.value;
+        const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
 
-    if (!serialized) {
-      console.error("Nothing to encrypt.");
-      return;
+        Word.run(async (context) => {
+          const selection = context.document.getSelection();
+          selection.insertText(encrypted, Word.InsertLocation.replace);
+          await context.sync();
+        }).catch(err => console.error("Error inserting encrypted OOXML:", err));
+      } else {
+        console.error("Error retrieving OOXML for encryption:", result.error.message);
+      }
     }
-
-    const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
-    selection.insertText(encrypted, Word.InsertLocation.replace);
-    await context.sync();
-  }).catch(err => console.error("Error during encryption:", err));
+  );
 }
 
-async function decryptHighlightedContent() {
+async function decryptHighlightedOOXML() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
@@ -144,129 +102,21 @@ async function decryptHighlightedContent() {
       return;
     }
 
-    const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
-    const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
-    if (!decryptedContent) {
-      console.error("Decryption failed. Check the key and content.");
-      return;
-    }
+    try {
+      const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
+      const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
-    await deserializeAndInsert(context, selection, decryptedContent);
-  }).catch(err => console.error("Error during decryption:", err));
-}
-
-async function serializeEntireDocument(context) {
-  const body = context.document.body;
-  body.load("text");
-  body.tables.load();
-  body.paragraphs.load("items");
-  await context.sync();
-
-  const content = {
-    text: "",
-    tables: []
-  };
-
-  for (const p of body.paragraphs.items) {
-    p.load("parentTableOrNullObject");
-  }
-  await context.sync();
-
-  const textParagraphs = [];
-  for (const p of body.paragraphs.items) {
-    if (p.parentTableOrNullObject.isNullObject) {
-      textParagraphs.push(p.text);
-    }
-  }
-  content.text = textParagraphs.join("\n");
-
-  if (body.tables.items.length > 0) {
-    for (const tbl of body.tables.items) {
-      tbl.load("values");
-    }
-    await context.sync();
-
-    for (const tbl of body.tables.items) {
-      if (tbl.values) {
-        content.tables.push(tbl.values);
+      if (!decryptedOOXML) {
+        console.error("Decryption failed. Check the key and content.");
+        return;
       }
+
+      selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
+      await context.sync();
+    } catch (err) {
+      console.error("Error decrypting OOXML:", err);
     }
-  }
-
-  return JSON.stringify(content);
-}
-
-async function deserializeAndInsertIntoDocument(context, serializedString) {
-  const content = JSON.parse(serializedString);
-  const body = context.document.body;
-  body.clear();
-
-  if (content.text) {
-    const paragraphs = content.text.split("\n");
-    for (let i = 0; i < paragraphs.length; i++) {
-      body.insertParagraph(paragraphs[i], Word.InsertLocation.end);
-    }
-  }
-
-  if (content.tables && content.tables.length > 0) {
-    body.insertParagraph("", Word.InsertLocation.end);
-    for (const tableData of content.tables) {
-      const rows = tableData.length;
-      const cols = rows > 0 ? tableData[0].length : 0;
-      if (rows > 0 && cols > 0) {
-        body.insertTable(rows, cols, Word.InsertLocation.end, tableData);
-        body.insertParagraph("", Word.InsertLocation.end);
-      }
-    }
-  }
-
-  await context.sync();
-}
-
-async function encryptEntireDocument() {
-  const clearanceLevel = document.getElementById("clearance-level").value;
-  const key = keys[clearanceLevel];
-
-  if (!key) {
-    console.error("No valid key selected.");
-    return;
-  }
-
-  await Word.run(async (context) => {
-    const serialized = await serializeEntireDocument(context);
-    const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
-
-    const body = context.document.body;
-    body.clear();
-    body.insertText(encrypted, Word.InsertLocation.start);
-    await context.sync();
-  }).catch(err => console.error("Error encrypting the entire document:", err));
-}
-
-async function decryptEntireDocument() {
-  const clearanceLevel = document.getElementById("clearance-level").value;
-  const key = keys[clearanceLevel];
-
-  if (!key) {
-    console.error("No valid key selected.");
-    return;
-  }
-
-  await Word.run(async (context) => {
-    const body = context.document.body;
-    body.load("text");
-    await context.sync();
-
-    const decryptedBytes = CryptoJS.AES.decrypt(body.text, key);
-    const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
-
-    if (!decryptedContent) {
-      console.error("Decryption failed. Check the key and content.");
-      return;
-    }
-
-    await deserializeAndInsertIntoDocument(context, decryptedContent);
-  }).catch(err => console.error("Error decrypting the entire document:", err));
+  });
 }
 
 async function writeHelloWorlds() {
