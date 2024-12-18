@@ -31,11 +31,13 @@ function copyContentWithOOXML() {
     (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         copiedOOXML = result.value;
+        showNotification("Copied", "Content copied successfully with formatting.");
         console.log("OOXML TEST:", copiedOOXML);
 
         // Automatically insert the copied OOXML back into the document
-        insertLastCopiedOOXML(Word.InsertLocation.end); 
+        insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
       } else {
+        showNotification("Error", result.error.message);
         console.error("Error retrieving OOXML:", result.error.message);
       }
     }
@@ -44,6 +46,7 @@ function copyContentWithOOXML() {
 
 async function insertLastCopiedOOXML(insertLocation = Word.InsertLocation.replace) {
   if (!copiedOOXML) {
+    showNotification("Error", "No OOXML content available to insert.");
     return;
   }
 
@@ -51,8 +54,10 @@ async function insertLastCopiedOOXML(insertLocation = Word.InsertLocation.replac
     const body = context.document.body;
     body.insertOoxml(copiedOOXML, insertLocation);
     await context.sync();
+    showNotification("Success", "OOXML content inserted into the document.");
   }).catch((err) => {
     console.error("Error inserting OOXML:", err);
+    showNotification("Error", "Could not insert OOXML.");
   });
 }
 
@@ -284,12 +289,12 @@ async function decryptEntireDocument() {
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world Hello world", Word.InsertLocation.end);
+    body.insertParagraph("Hello world Hello world!", Word.InsertLocation.end);
 
     const tableValues = [
       ["Name", "Age"],
-      ["Alice", "31"],
-      ["Bob", "20"]
+      ["Alice", "30"],
+      ["Bob", "25"]
     ];
     body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
     await context.sync();
