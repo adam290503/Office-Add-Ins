@@ -61,7 +61,7 @@ async function encryptHighlightedOOXML() {
 
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
-        const abc = setKeyPair(encrypted,"--001--");
+        const abc = addHiddenContentControl(encrypted,"--001--");
 
         Word.run(async (context) => {
           const selection = context.document.getSelection();
@@ -354,26 +354,89 @@ async function writeHelloWorlds() {
 
 
 
-function setKeyPair(encrypted,friendlyIdent) { const keyPair = { "public-key": friendlyIdent,"EncryptedBlock": encrypted};
-Office.context.document.properties.custom.setAsync( "KeyPair", JSON.stringify(keyPair), (result) => { 
-  if (result.status=== Office.AsyncResultStatus.Succeeded) {
-     console.log("Key pair stored successfully."); } 
-     else { console.error("Failed to store key pair:", result.error.message); } } ); }
+
+
+
+// Property bag to store the encruypted data so the document remains workable 
+
+
+
+function setKeyPair(encrypted,FriendlyName) {
+   const keyPair = { 
+    "public-key": FriendlyName,
+    "EncryptedBlock": encrypted
+   };
+
+  Office.context.document.properties.custom.setAsync(
+    FriendlyName, 
+    JSON.stringify(keyPair), 
+    (result) => { 
+        if (result.status=== Office.AsyncResultStatus.Succeeded) {
+              console.log("Key pair stored successfully."); 
+        } 
+        else { console.error("Failed to store key pair:", result.error.message); 
+
+        }
+      } 
+    ); 
+  }
  
 
-     function getKeyPair() {
-      Office.context.document.properties.custom.getAsync(
-       "KeyPair",
-        (result) => {
-          if (result.status === Office.AsyncResultStatus.Succeeded) {
-            const keyPair = JSON.parse(result.value);
-            console.log("Retrieved Key Pair:", keyPair);
-            console.log("EncryptedBlock");
-            console.log(keyPair.EncryptedBlock);
-            return keyPair.EncryptedBlock;
-          } else {
-            console.error("Failed to retrieve key pair:", result.error.message);
-          }
-        }
-      );
+function getKeyPair(FriendlyName) {
+Office.context.document.properties.custom.getAsync(
+  FriendlyName,
+  (result) => {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      const keyPair = JSON.parse(result.value);
+      console.log("Retrieved Key Pair:", keyPair);
+      console.log("EncryptedBlock");
+      console.log(keyPair.EncryptedBlock);
+      return keyPair.EncryptedBlock;
+    } else {
+      console.error("Failed to retrieve key pair:", result.error.message);
     }
+  }
+);
+}
+
+// We will use this if the proerpty bag does not work - AG 
+async function addHiddenContentControl(encrypted,FriendlyName) {
+  await Word.run(async (context) => {
+    const range = context.document.getSelection();
+    const contentControl = range.insertContentControl();
+    contentControl.title = FriendlyName;
+    contentControl.tag = FriendlyName;
+    contentControl.appearance = "hidden"; // Makes the content control hidden
+    contentControl.insertText(
+      encrypted,
+      Word.InsertLocation.replace
+    );
+
+    await context.sync();
+    console.log("Hidden content control added.");
+  });
+}
+
+async function getHiddenContentControlValue(FriendlyName) {
+  await Word.run(async (context) => {
+    // Get all content controls
+    const contentControls = context.document.contentControls;
+    contentControls.load("items/tag,title,text");
+
+    await context.sync();
+
+    // Find the content control by tag
+    const hiddenControl = contentControls.items.find(
+      (control) => control.tag === FriendlyName
+    );
+
+    if (hiddenControl) {
+      console.log("Hidden Content Control Value:", hiddenControl.text);
+    } else {
+      console.log("No content control with the specified tag found.");
+    }
+  });
+}
+
+
+
