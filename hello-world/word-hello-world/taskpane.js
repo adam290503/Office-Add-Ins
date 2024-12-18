@@ -61,8 +61,8 @@ async function encryptHighlightedOOXML() {
 
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
-        const abc = addHiddenContentControl(encrypted,"--001--");
-
+        const abc = addHiddenContentControl(encrypted,"Key001");
+        const xyv = getHiddenContentControlValue("Key001");
         //Word.run(async (context) => {
         //  const selection = context.document.getSelection();
         //  selection.insertText("--001--", Word.InsertLocation.replace);
@@ -191,6 +191,9 @@ async function encryptHighlightedContent() {
 }
 
 async function decryptHighlightedContent() {
+
+  
+
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
@@ -404,7 +407,7 @@ async function addHiddenContentControl(encrypted,FriendlyName) {
   await Word.run(async (context) => {
     const range = context.document.getSelection();
     const contentControl = range.insertContentControl();
-    contentControl.title = "HiddenData";
+    contentControl.title = FriendlyName;
     contentControl.tag = FriendlyName;
     contentControl.insertText(
       encrypted,
@@ -435,6 +438,18 @@ async function getHiddenContentControlValue(FriendlyName) {
     } else {
       console.log("No content control with the specified tag found.");
     }
+
+    // Logging for debugging 
+
+    
+      const body = context.document.body;
+      body.insertParagraph("Start", Word.InsertLocation.end);
+  
+      body.insertParagraph(hiddenControl.text, Word.InsertLocation.end);
+      body.insertParagraph("End", Word.InsertLocation.end);
+      
+      await context.sync();
+    
   });
 }
 
