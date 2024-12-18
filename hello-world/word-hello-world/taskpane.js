@@ -61,7 +61,7 @@ async function encryptHighlightedOOXML() {
 
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
-        const abc = addHiddenContentControl(encrypted,"--001--");
+        //const abc = addHiddenContentControl(encrypted,"--001--");
 
         //Word.run(async (context) => {
         //  const selection = context.document.getSelection();
