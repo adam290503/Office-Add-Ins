@@ -41,14 +41,29 @@ function copyContentWithOOXML() {
   );
 }
 
-function showNotification(title, message) {
-  const notification = document.getElementById("notification");
-  if (notification) {
-    notification.innerText = `${title}: ${message}`;
-  } else {
-    console.log(`${title}: ${message}`);
+function pasteOOXML() {
+  if (!copiedOOXML) {
+    showNotification("Error", "No OOXML content available to paste.");
+    return;
   }
+
+  Office.context.document.setSelectedDataAsync(
+    copiedOOXML,
+    { coercionType: Office.CoercionType.Ooxml },
+    (result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        showNotification("Success", "OOXML content pasted successfully.");
+      } else {
+        showNotification("Error", result.error.message);
+        console.error("Error pasting OOXML:", result.error.message);
+      }
+    }
+  );
 }
+
+// Attach the paste OOXML function to the button
+document.getElementById("pasteOOXMLButton").addEventListener("click", pasteOOXML);
+
 
 async function serializeSelection(context, selection) {
   selection.load("text");
