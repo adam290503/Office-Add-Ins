@@ -406,12 +406,12 @@ async function addHiddenContentControl(encrypted,FriendlyName) {
     const contentControl = range.insertContentControl();
     contentControl.title = "HiddenData";
     contentControl.tag = FriendlyName;
-    contentControl.appearance = "hidden"; 
     contentControl.insertText(
       encrypted,
       Word.InsertLocation.replace
     );
-    contentControl.appearance = "hidden";
+    contentControl.appearance = "none";
+    contentControl.font.hidden = true;
     await context.sync();
     console.log("Hidden content control added.");
   });
