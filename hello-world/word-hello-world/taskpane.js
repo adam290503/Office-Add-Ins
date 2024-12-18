@@ -33,9 +33,6 @@ function copyContentWithOOXML() {
         copiedOOXML = result.value;
         showNotification("Copied", "Content copied successfully with formatting.");
         console.log("OOXML TEST:", copiedOOXML);
-
-        // Automatically insert the copied OOXML back into the document
-        insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
       } else {
         showNotification("Error", result.error.message);
         console.error("Error retrieving OOXML:", result.error.message);
@@ -44,28 +41,14 @@ function copyContentWithOOXML() {
   );
 }
 
-async function insertLastCopiedOOXML(insertLocation = Word.InsertLocation.replace) {
-  if (!copiedOOXML) {
-    showNotification("Error", "No OOXML content available to insert.");
-    return;
+function showNotification(title, message) {
+  const notification = document.getElementById("notification");
+  if (notification) {
+    notification.innerText = `${title}: ${message}`;
+  } else {
+    console.log(`${title}: ${message}`);
   }
-
-  await Word.run(async (context) => {
-    const body = context.document.body;
-    body.insertOoxml(copiedOOXML, insertLocation);
-    await context.sync();
-    showNotification("Success", "OOXML content inserted into the document.");
-  }).catch((err) => {
-    console.error("Error inserting OOXML:", err);
-    showNotification("Error", "Could not insert OOXML.");
-  });
 }
-
-// Attach the paste OOXML function to the button for manual insertion
-document.getElementById("pasteOOXMLButton").addEventListener("click", () => {
-  insertLastCopiedOOXML(Word.InsertLocation.end); // Change InsertLocation as needed
-});
-
 
 async function serializeSelection(context, selection) {
   selection.load("text");
@@ -289,7 +272,7 @@ async function decryptEntireDocument() {
 async function writeHelloWorlds() {
   await Word.run(async (context) => {
     const body = context.document.body;
-    body.insertParagraph("Hello world Hello world!", Word.InsertLocation.end);
+    body.insertParagraph("Hello world! Hello world!", Word.InsertLocation.end);
 
     const tableValues = [
       ["Name", "Age"],
