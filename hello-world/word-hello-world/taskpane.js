@@ -63,11 +63,11 @@ async function encryptHighlightedOOXML() {
         
         const abc = addHiddenContentControl(encrypted,"--001--");
 
-        Word.run(async (context) => {
-          const selection = context.document.getSelection();
-          selection.insertText("--001--", Word.InsertLocation.replace);
-          await context.sync();
-        }).catch(err => console.error("Error inserting encrypted OOXML:", err));
+        //Word.run(async (context) => {
+        //  const selection = context.document.getSelection();
+        //  selection.insertText("--001--", Word.InsertLocation.replace);
+        //  await context.sync();
+        //}).catch(err => console.error("Error inserting encrypted OOXML:", err));
       } else {
         console.error("Error retrieving OOXML for encryption:", result.error.message);
       }
