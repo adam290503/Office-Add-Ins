@@ -61,7 +61,7 @@ async function encryptHighlightedOOXML() {
 
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
-        //const abc = addHiddenContentControl(encrypted,"--001--");
+        const abc = addHiddenContentControl(encrypted,"--001--");
 
         //Word.run(async (context) => {
         //  const selection = context.document.getSelection();
@@ -404,14 +404,14 @@ async function addHiddenContentControl(encrypted,FriendlyName) {
   await Word.run(async (context) => {
     const range = context.document.getSelection();
     const contentControl = range.insertContentControl();
-    contentControl.title = FriendlyName;
+    contentControl.title = "HiddenData";
     contentControl.tag = FriendlyName;
-    contentControl.appearance = "hidden"; // Makes the content control hidden
+    contentControl.appearance = "hidden"; 
     contentControl.insertText(
       encrypted,
       Word.InsertLocation.replace
     );
-
+    contentControl.appearance = "hidden";
     await context.sync();
     console.log("Hidden content control added.");
   });
