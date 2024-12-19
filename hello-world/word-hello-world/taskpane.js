@@ -83,19 +83,11 @@ async function decryptHighlightedOOXML() {
     console.error("No valid key selected.");
     return;
   }
-  getSpecificXmlNode("Key001");
+  const EncryptedData =  getSpecificXmlNode("Key001");
   await Word.run(async (context) => {
-    const selection = context.document.getSelection();
-    selection.load("text");
-    await context.sync();
-
-    if (!selection.text) {
-      console.error("Nothing to decrypt.");
-      return;
-    }
-
+    
     try {
-      const decryptedBytes = CryptoJS.AES.decrypt(selection.text, key);
+      const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
       const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
       if (!decryptedOOXML) {
@@ -513,6 +505,7 @@ async function getSpecificXmlNode(FriendlyName) {
                 `Value for Key "${FriendlyName}":`,
                 node.singleNodeValue.textContent
               );
+              return node.singleNodeValue.textContent;
             } else {
               console.log(`Key "${FriendlyName}" not found.`);
             }
