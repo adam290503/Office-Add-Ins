@@ -467,8 +467,10 @@ async function getHiddenContentControlValue(FriendlyName) {
 async function addCustomXml(encrypted,FriendlyName) {
   const xml = `
     <Metadata>
-      <Key>${FriendlyName}</Key>
-      <Value>${encrypted}</Value>
+      <Node>
+        <Key>${FriendlyName}</Key>
+        <Value>${encrypted}</Value>
+      </Node>
     </Metadata>
   `;
 
