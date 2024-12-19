@@ -522,7 +522,7 @@ async function addCustomXml(encrypted, FriendlyName) {
 
 async function getSpecificXmlNode(FriendlyName) {
   return new Promise((resolve, reject) => {
-    Office.context.document.customXmlParts.getByNamespaceAsync("http://schemas.custom.xml", (result) => {
+    Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const parts = result.value;
         console.log(`Found ${parts.length} custom XML part(s).`);
