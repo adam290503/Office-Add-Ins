@@ -62,6 +62,7 @@ async function encryptHighlightedOOXML() {
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
         const abc = addCustomXml(encrypted,"Key001");
+        console.log("ABC =",abc)
         
         Word.run(async (context) => {
           const selection = context.document.getSelection();
