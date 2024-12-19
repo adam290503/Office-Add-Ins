@@ -70,7 +70,7 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="http://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/taskpane.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/taskpane_mode.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with Secure Document Add-in!"/>
