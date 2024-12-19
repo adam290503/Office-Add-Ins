@@ -87,41 +87,34 @@ async function decryptHighlightedOOXML() {
   }
 
   try {
-    // Wait for the encrypted data to be retrieved
-    const EncryptedData = await getSpecificXmlNode("Key001");
-    console.log("Encrypted Data: ", EncryptedData);
+    console.log("Retrieving encrypted data...");
+    const encryptedData = await getSpecificXmlNode("Key001"); // Wait for the data to be retrieved
 
-    console.log("Decryption Key: ", key);
-
-    if (!EncryptedData) {
+    if (!encryptedData) {
       console.error("Encrypted data not found for the given key.");
       return;
     }
 
+    console.log("Encrypted Data Retrieved:", encryptedData);
+
     await Word.run(async (context) => {
       try {
-        console.log("Encrypted Data: ", EncryptedData);
-        console.log("Decryption Key: ", key);
-
-        // Decrypt the data
-        const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
+        console.log("Decrypting data...");
+        const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
         const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
-
-       
 
         if (!decryptedOOXML) {
           console.error("Decryption failed. Check the key and content.");
           return;
         }
 
-        // Verify the integrity of the decrypted content
-        const hash = CryptoJS.SHA256(decryptedOOXML).toString();
-        console.log("Decrypted OOXML Hash: ", hash);
+        console.log("Decrypted OOXML:", decryptedOOXML);
 
         // Insert the decrypted content back into the Word document
         const selection = context.document.getSelection();
         selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
         await context.sync();
+        console.log("Decrypted OOXML inserted into the document.");
       } catch (err) {
         console.error("Error decrypting OOXML:", err);
       }
@@ -130,6 +123,7 @@ async function decryptHighlightedOOXML() {
     console.error("Error retrieving encrypted data:", error);
   }
 }
+
 
 
 async function serializeSelection(context, selection) {
