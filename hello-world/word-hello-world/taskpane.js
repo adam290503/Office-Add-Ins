@@ -86,7 +86,7 @@ async function decryptHighlightedOOXML() {
 
 
  
-      const EncryptedData = await getSpecificXmlNode("Key001");
+      const EncryptedData =  getSpecificXmlNode("Key001");
       console.log("Retrieved Value:", EncryptedData);
     
   
@@ -518,7 +518,7 @@ async function getSpecificXmlNode(FriendlyName) {
                 node.singleNodeValue.textContent
               );
               if (node.singleNodeValue) {
-                return(node.singleNodeValue.textContent); // Return the node value
+                return node.singleNodeValue.textContent; // Return the node value
               }
             } else {
               console.log(`Key "${FriendlyName}" not found.`);
