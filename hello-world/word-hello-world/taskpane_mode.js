@@ -44,16 +44,10 @@ Handle the encryption of the content
  */
 async function encryptHighlightedOOXML() {
     const clearanceLevel = document.getElementById("clearance-level").value;
-    const uniqueId = document.getElementById("unique-id").value.trim();
     const key = keys[clearanceLevel];
 
     if (!key) {
         console.error("No valid key selected.");
-        return;
-    }
-
-    if (!uniqueId) {
-        console.error("Unique identifier is required.");
         return;
     }
 
@@ -71,11 +65,11 @@ async function encryptHighlightedOOXML() {
 
                 const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
 
-                const abc = await addCustomXml(encrypted, uniqueId);
+                const abc = await addCustomXml(encrypted, "Key001");
 
                 Word.run(async (context) => {
                     const selection = context.document.getSelection();
-                    selection.insertText(uniqueId, Word.InsertLocation.replace);
+                    selection.insertText("Key001", Word.InsertLocation.replace);
                     await context.sync();
                 }).catch(err => console.error("Error inserting encrypted OOXML:", err));
             } else {
@@ -90,7 +84,6 @@ async function encryptHighlightedOOXML() {
  */
 async function decryptHighlightedOOXML() {
     const clearanceLevel = document.getElementById("clearance-level").value;
-    const uniqueId = document.getElementById("unique-id").value.trim();
     const key = keys[clearanceLevel];
 
     if (!key) {
@@ -98,17 +91,12 @@ async function decryptHighlightedOOXML() {
         return;
     }
 
-    if (!uniqueId) {
-        console.error("Unique identifier is required.");
-        return;
-    }
-
     try {
         // Retrieve the encrypted data using the updated getSpecificXmlPartContent function
-        const EncryptedData = await getSpecificXmlPartContent(uniqueId);
+        const EncryptedData = await getSpecificXmlPartContent("Key001");
 
         if (!EncryptedData) {
-            console.error("Encrypted data not found for the given identifier.");
+            console.error("Encrypted data not found for the given key.");
             return;
         }
 
