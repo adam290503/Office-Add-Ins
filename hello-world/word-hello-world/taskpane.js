@@ -540,6 +540,8 @@ async function getSpecificXmlNode(FriendlyName) {
 
               // Use XPath to find the specific node by key
               const xpath = `/Metadata/Node[Key='${FriendlyName}']/Value`;
+              console.log("XPath Query:", xpath);
+
               const node = xmlDoc.evaluate(
                 xpath,
                 xmlDoc,
@@ -549,9 +551,11 @@ async function getSpecificXmlNode(FriendlyName) {
               );
 
               if (node.singleNodeValue) {
+                console.log(`Value for Key "${FriendlyName}":`, node.singleNodeValue.textContent);
                 found = true;
-                console.log(`Found value for "${FriendlyName}":`, node.singleNodeValue.textContent);
                 resolve(node.singleNodeValue.textContent);
+              } else {
+                console.error(`Key "${FriendlyName}" not found in XML.`);
               }
             } else {
               console.error("Error retrieving XML:", xmlResult.error.message);
@@ -570,6 +574,7 @@ async function getSpecificXmlNode(FriendlyName) {
     });
   });
 }
+
 
 
 
