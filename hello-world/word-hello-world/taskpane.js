@@ -89,9 +89,16 @@ async function decryptHighlightedOOXML() {
 
   (async function () {
     try {
-      const EncryptedData = await getSpecificXmlNode("Key001");
-      console.log("001 - Encrypted Data  ", EncryptedData);
+      const EncryptedData = "";
+      //console.log("001 - Encrypted Data  ", EncryptedData);
+      getSpecificXmlNode("Key001")
+      .then((EncryptedData) => {
+        console.log("001 Encrypted Data:", EncryptedData);
+      })
 
+      .catch((error) => {
+        console.error("Error:", error);
+      });
       // The value is now accessible as a string
       await Word.run(async (context) => {
     
