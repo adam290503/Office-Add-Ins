@@ -52,7 +52,7 @@ async function encryptHighlightedOOXML() {
 
   Office.context.document.getSelectedDataAsync(
     Office.CoercionType.Ooxml,
-    (result) => {
+    async (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const ooxml = result.value;
 
@@ -90,6 +90,7 @@ async function decryptHighlightedOOXML() {
     // Wait for the encrypted data to be retrieved
     const EncryptedData = await getSpecificXmlNode("Key001");
     console.log("Encrypted Data: ", EncryptedData);
+
     console.log("Decryption Key: ", key);
 
     if (!EncryptedData) {
@@ -368,12 +369,12 @@ async function writeHelloWorlds() {
     ];
     body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
 
-    body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
-    addCustomXml("test","sample");
-    body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
+    //body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
+   // addCustomXml("test","sample");
+   // body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
 
-    const EncryptedSample = await getSpecificXmlNode("sample");
-    body.insertParagraph(EncryptedSample, Word.InsertLocation.end);
+  //  const EncryptedSample = await getSpecificXmlNode("sample");
+ //   body.insertParagraph(EncryptedSample, Word.InsertLocation.end);
 
 
 
