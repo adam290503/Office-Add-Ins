@@ -85,7 +85,7 @@ async function decryptHighlightedOOXML() {
   }
 
   try {
-    // Retrieve the encrypted data using the updated getSpecificXmlNode function
+    // Wait for the encrypted data to be retrieved
     const EncryptedData = await getSpecificXmlNode("Key001");
 
     if (!EncryptedData) {
@@ -123,6 +123,7 @@ async function decryptHighlightedOOXML() {
     console.error("Error retrieving encrypted data:", error);
   }
 }
+
 
 async function serializeSelection(context, selection) {
   selection.load("text");
@@ -498,6 +499,8 @@ async function addCustomXml(encrypted, FriendlyName) {
 
 
 
+
+
 async function getSpecificXmlNode(FriendlyName) {
   return new Promise((resolve, reject) => {
     Office.context.document.customXmlParts.getByNamespaceAsync("http://schemas.custom.xml", (result) => {
@@ -551,6 +554,7 @@ async function getSpecificXmlNode(FriendlyName) {
     });
   });
 }
+
 
 
 
