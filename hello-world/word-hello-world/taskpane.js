@@ -79,15 +79,25 @@ async function decryptHighlightedOOXML() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
+
   if (!key) {
     console.error("No valid key selected.");
     return;
   }
 
 
- 
-      const EncryptedData =  getSpecificXmlNode("Key001");
+
+  (async function () {
+    try {
+      const EncryptedData = await getSpecificXmlNode("Key001");
       console.log("Retrieved Value:", EncryptedData);
+      // The value is now accessible as a string
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  })();
+ 
+        console.log("Retrieved Value:", EncryptedData);
     
   
 
