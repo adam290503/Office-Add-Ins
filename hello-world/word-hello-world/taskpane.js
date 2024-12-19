@@ -488,6 +488,15 @@ async function addCustomXml(encrypted, FriendlyName) {
     Office.context.document.customXmlParts.addAsync(xml, (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         console.log(`Custom XML for "${FriendlyName}" added successfully.`);
+        
+        // Retrieve the added XML part for verification
+        result.value.getXmlAsync((xmlResult) => {
+          if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
+            console.log("Stored Custom XML:", xmlResult.value);
+          } else {
+            console.error("Error retrieving stored XML:", xmlResult.error.message);
+          }
+        });
         resolve();
       } else {
         console.error("Error adding custom XML:", result.error.message);
@@ -506,6 +515,7 @@ async function getSpecificXmlNode(FriendlyName) {
     Office.context.document.customXmlParts.getByNamespaceAsync("http://schemas.custom.xml", (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const parts = result.value;
+        console.log(`Found ${parts.length} custom XML part(s).`);
 
         if (parts.length === 0) {
           console.log("No custom XML parts found.");
@@ -518,6 +528,7 @@ async function getSpecificXmlNode(FriendlyName) {
           part.getXmlAsync((xmlResult) => {
             if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
               const xml = xmlResult.value;
+              console.log("Retrieved XML Part:", xml);
 
               // Parse the XML using DOMParser
               const parser = new DOMParser();
@@ -535,6 +546,7 @@ async function getSpecificXmlNode(FriendlyName) {
 
               if (node.singleNodeValue) {
                 found = true;
+                console.log(`Found value for "${FriendlyName}":`, node.singleNodeValue.textContent);
                 resolve(node.singleNodeValue.textContent);
               }
             } else {
@@ -554,6 +566,7 @@ async function getSpecificXmlNode(FriendlyName) {
     });
   });
 }
+
 
 
 
