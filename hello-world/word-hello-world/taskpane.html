@@ -2,6 +2,55 @@
 <html>
 <head>
   <title>Secure Document Taskpane</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    label, button, input, select {
+      font-size: 14px;
+      margin: 5px 0;
+    }
+
+    button {
+      display: block;
+      margin-bottom: 10px;
+      padding: 10px 15px;
+      background-color: #0078D7;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005A9E;
+    }
+
+    input[type="text"] {
+      width: 200px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #notification {
+      margin-top: 20px;
+      color: red;
+    }
+  </style>
 </head>
 <body>
   <h2>Document Security</h2>
@@ -12,7 +61,11 @@
     <option value="sc">SC</option>
     <option value="official">Official</option>
   </select>
-  <br><br>
+  <br>
+
+  <label for="unique-identifier">Enter Unique Identifier:</label>
+  <input type="text" id="unique-identifier" placeholder="Enter Key Identifier">
+  <br>
 
   <button id="encryptButton">Encrypt Highlighted</button>
   <button id="decryptButton">Decrypt Highlighted</button>
@@ -23,8 +76,6 @@
   <button id="encryptOOXMLButton">Encrypt OOXML</button>
   <button id="decryptOOXMLButton">Decrypt OOXML</button>
   <button id="decryptCTButton">Decrypt CT</button>
-  
-
 
   <div id="notification"></div>
 

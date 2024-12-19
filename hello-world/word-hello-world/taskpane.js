@@ -1,5 +1,7 @@
 /* global Word, Office, CryptoJS */
 
+/* global Word, Office, CryptoJS */
+
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
     document.getElementById("encryptButton").addEventListener("click", encryptHighlightedContent);
@@ -7,8 +9,27 @@ Office.onReady((info) => {
     document.getElementById("writeButton").addEventListener("click", writeHelloWorlds);
     document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
     document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
-    document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
-    document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
+
+    // Updated handlers to ensure they work with the unique identifier
+    document.getElementById("encryptOOXMLButton").addEventListener("click", () => {
+      const uniqueIdentifier = document.getElementById("unique-identifier").value;
+      if (!uniqueIdentifier) {
+        console.error("Unique Identifier is required for encryption.");
+        document.getElementById("notification").innerText = "Please enter a unique identifier.";
+        return;
+      }
+      encryptHighlightedOOXML(uniqueIdentifier);
+    });
+
+    document.getElementById("decryptOOXMLButton").addEventListener("click", () => {
+      const uniqueIdentifier = document.getElementById("unique-identifier").value;
+      if (!uniqueIdentifier) {
+        console.error("Unique Identifier is required for decryption.");
+        document.getElementById("notification").innerText = "Please enter a unique identifier.";
+        return;
+      }
+      decryptHighlightedOOXML(uniqueIdentifier);
+    });
 
     Office.context.document.addHandlerAsync(
       Office.EventType.DocumentSelectionChanged,
@@ -18,6 +39,7 @@ Office.onReady((info) => {
     copyContentWithOOXML();
   }
 });
+
 
 const keys = {
   dv: "dv-secure-key",
@@ -41,7 +63,7 @@ function copyContentWithOOXML() {
   );
 }
 
-async function encryptHighlightedOOXML() {
+async function encryptHighlightedOOXML(uniqueIdentifier) {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
@@ -52,24 +74,18 @@ async function encryptHighlightedOOXML() {
 
   Office.context.document.getSelectedDataAsync(
     Office.CoercionType.Ooxml,
-    async(result) => {
+    async (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const ooxml = result.value;
 
-        const hash = CryptoJS.SHA256(ooxml).toString();
-        console.log("OOXML Hash:", hash);
-
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
-        
-        const abc = addCustomXml(encrypted,"Key001");
-        console.log(encrypted)
-        console.log("ABC =",abc)
-        
+        await addCustomXml(encrypted, uniqueIdentifier);
+
         Word.run(async (context) => {
           const selection = context.document.getSelection();
-          selection.insertText("Key001", Word.InsertLocation.replace);
+          selection.insertText(uniqueIdentifier, Word.InsertLocation.replace);
           await context.sync();
-        }).catch(err => console.error("Error inserting encrypted OOXML:", err));
+        });
       } else {
         console.error("Error retrieving OOXML for encryption:", result.error.message);
       }
@@ -77,7 +93,7 @@ async function encryptHighlightedOOXML() {
   );
 }
 
-async function decryptHighlightedOOXML() {
+async function decryptHighlightedOOXML(uniqueIdentifier) {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
@@ -87,45 +103,26 @@ async function decryptHighlightedOOXML() {
   }
 
   try {
-    console.log("Retrieving encrypted data...");
-    
-    // Ensure we wait for getSpecificXmlNode to fully resolve
-    const encryptedData = await getSpecificXmlNode("Key001");
+    const encryptedData = await getSpecificXmlNode(uniqueIdentifier);
 
     if (!encryptedData) {
       console.error("Encrypted data not found for the given key.");
       return;
     }
 
-    console.log("Encrypted Data Retrieved:", encryptedData);
-
-    // Run Word context operations after encryptedData is confirmed
     await Word.run(async (context) => {
-      try {
-        console.log("Decrypting data...");
-        const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
-        const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
+      const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
+      const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
-        if (!decryptedOOXML) {
-          console.error("Decryption failed. Check the key and content.");
-          return;
-        }
-
-        console.log("Decrypted OOXML:", decryptedOOXML);
-
-        // Insert the decrypted content back into the Word document
-        const selection = context.document.getSelection();
-        selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
-        await context.sync();
-        console.log("Decrypted OOXML inserted into the document.");
-      } catch (err) {
-        console.error("Error decrypting OOXML:", err);
-      }
+      const selection = context.document.getSelection();
+      selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
+      await context.sync();
     });
   } catch (error) {
-    console.error("Error retrieving encrypted data:", error);
+    console.error("Error decrypting OOXML:", error);
   }
 }
+
 
 
 
