@@ -83,7 +83,7 @@ async function decryptHighlightedOOXML() {
     console.error("No valid key selected.");
     return;
   }
-
+  getSpecificXmlNode("Key001");
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
     selection.load("text");
@@ -482,7 +482,7 @@ async function addCustomXml(encrypted,FriendlyName) {
 }
 
 
-async function getCustomXml() {
+async function getSpecificXmlNode(FriendlyName) {
   Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
     if (result.status === Office.AsyncResultStatus.Succeeded) {
       const parts = result.value;
@@ -490,7 +490,30 @@ async function getCustomXml() {
       parts.forEach((part) => {
         part.getXmlAsync((xmlResult) => {
           if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
-            console.log("Retrieved Custom XML:", xmlResult.value);
+            const xml = xmlResult.value;
+
+            // Parse the XML using DOMParser
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xml, "application/xml");
+
+            // Use XPath to find the specific node by key
+            const xpath = `/Metadata/Node[Key='${FriendlyName}']/Value`;
+            const node = xmlDoc.evaluate(
+              xpath,
+              xmlDoc,
+              null,
+              XPathResult.FIRST_ORDERED_NODE_TYPE,
+              null
+            );
+
+            if (node.singleNodeValue) {
+              console.log(
+                `Value for Key "${FriendlyName}":`,
+                node.singleNodeValue.textContent
+              );
+            } else {
+              console.log(`Key "${FriendlyName}" not found.`);
+            }
           } else {
             console.error("Error retrieving XML:", xmlResult.error.message);
           }
@@ -501,6 +524,8 @@ async function getCustomXml() {
     }
   });
 }
+
+
 
 
 
