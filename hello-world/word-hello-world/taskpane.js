@@ -9,6 +9,7 @@ Office.onReady((info) => {
     document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
     document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
     document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
+    document.getElementById("decryptCTButton").addEventListener("click", decryptHighlightedCiphertext);
 
     Office.context.document.addHandlerAsync(
       Office.EventType.DocumentSelectionChanged,
@@ -40,6 +41,52 @@ function copyContentWithOOXML() {
     }
   );
 }
+
+async function decryptHighlightedCiphertext() {
+  const clearanceLevel = document.getElementById("clearance-level").value;
+  const key = keys[clearanceLevel];
+
+  if (!key) {
+    console.error("No valid key selected.");
+    return;
+  }
+
+  try {
+    await Word.run(async (context) => {
+      const selection = context.document.getSelection();
+      selection.load("text");
+      await context.sync();
+
+      const encryptedText = selection.text;
+
+      if (!encryptedText) {
+        console.error("No text selected for decryption.");
+        return;
+      }
+
+      console.log("Encrypted Text: ", encryptedText);
+      console.log("Decryption Key: ", key);
+
+      // Decrypt the ciphertext
+      const decryptedBytes = CryptoJS.AES.decrypt(encryptedText, key);
+      const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+      if (!decryptedText) {
+        console.error("Decryption failed. Check the key and content.");
+        return;
+      }
+
+      console.log("Decrypted Text: ", decryptedText);
+
+      // Replace the selection with the decrypted text
+      selection.insertText(decryptedText, Word.InsertLocation.replace);
+      await context.sync();
+    });
+  } catch (error) {
+    console.error("Error decrypting ciphertext:", error);
+  }
+}
+
 
 async function encryptHighlightedOOXML() {
   const clearanceLevel = document.getElementById("clearance-level").value;
