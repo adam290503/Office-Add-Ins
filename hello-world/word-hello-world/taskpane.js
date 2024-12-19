@@ -97,7 +97,7 @@ async function decryptHighlightedOOXML() {
     try {
       console.log("Encrypted Data  ", EncryptedData);
       console.log("key Data  ", key);
-      alert ("before decrypt ");
+      
       const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
       console.log("Decrypted bytes:", decryptedBytes);
       const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
