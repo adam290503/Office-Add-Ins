@@ -62,6 +62,7 @@ async function encryptHighlightedOOXML() {
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
         const abc = addCustomXml(encrypted,"Key001");
+        console.log(encrypted)
         console.log("ABC =",abc)
         
         Word.run(async (context) => {
@@ -369,7 +370,6 @@ async function writeHelloWorlds() {
 
     body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
     addCustomXml("test","sample");
-    getCustomXml();
     body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
 
     await context.sync();
