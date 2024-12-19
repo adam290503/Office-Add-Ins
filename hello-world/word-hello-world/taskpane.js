@@ -519,7 +519,7 @@ async function getSpecificXmlNode(FriendlyName) {
                 node.singleNodeValue.textContent
               );
               if (node.singleNodeValue) {
-                resolve(node.singleNodeValue.textContent); // Return the node value
+                return(node.singleNodeValue.textContent); // Return the node value
               }
             } else {
               console.log(`Key "${FriendlyName}" not found.`);
