@@ -92,41 +92,38 @@ async function decryptHighlightedOOXML() {
       const EncryptedData = await getSpecificXmlNode("Key001");
       console.log("Retrieved Value:", EncryptedData);
       // The value is now accessible as a string
+      await Word.run(async (context) => {
+    
+        try {
+          console.log("Encrypted Data  ", EncryptedData);
+          console.log("key Data  ", key);
+          
+          const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
+          console.log("Decrypted bytes:", decryptedBytes);
+          const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    
+          if (!decryptedOOXML) {
+            console.error("Decryption failed. Check the key and content.");
+            return;
+          }
+    
+          // Hash the decrypted OOXML to verify integrity
+          const hash = CryptoJS.SHA256(decryptedOOXML).toString();
+          console.log("Decrypted OOXML Hash:", hash);
+    
+          selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
+          await context.sync();
+        } catch (err) {
+          console.error("Error decrypting OOXML:", err);
+        }
+      });
     } catch (error) {
       console.error("Error:", error);
     }
   })();
  
-        console.log("Retrieved Value:", EncryptedData);
-    
+   
   
-
-  console.log("Encrypted Data  ", EncryptedData);
-  await Word.run(async (context) => {
-    
-    try {
-      console.log("Encrypted Data  ", EncryptedData);
-      console.log("key Data  ", key);
-      
-      const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
-      console.log("Decrypted bytes:", decryptedBytes);
-      const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
-
-      if (!decryptedOOXML) {
-        console.error("Decryption failed. Check the key and content.");
-        return;
-      }
-
-      // Hash the decrypted OOXML to verify integrity
-      const hash = CryptoJS.SHA256(decryptedOOXML).toString();
-      console.log("Decrypted OOXML Hash:", hash);
-
-      selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
-      await context.sync();
-    } catch (err) {
-      console.error("Error decrypting OOXML:", err);
-    }
-  });
 }
 
 async function serializeSelection(context, selection) {
