@@ -90,7 +90,7 @@ async function decryptHighlightedOOXML() {
   (async function () {
     try {
       const EncryptedData = await getSpecificXmlNode("Key001");
-      setTimeout(() => { console.log("Retrieved Value:", EncryptedData);},1000);
+      console.log("001 - Encrypted Data  ", EncryptedData);
 
       // The value is now accessible as a string
       await Word.run(async (context) => {
