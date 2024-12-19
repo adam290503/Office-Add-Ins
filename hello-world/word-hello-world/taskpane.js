@@ -88,7 +88,9 @@ async function decryptHighlightedOOXML() {
 
   try {
     console.log("Retrieving encrypted data...");
-    const encryptedData = await getSpecificXmlNode("Key001"); // Wait for the data to be retrieved
+    
+    // Ensure we wait for getSpecificXmlNode to fully resolve
+    const encryptedData = await getSpecificXmlNode("Key001");
 
     if (!encryptedData) {
       console.error("Encrypted data not found for the given key.");
@@ -97,6 +99,7 @@ async function decryptHighlightedOOXML() {
 
     console.log("Encrypted Data Retrieved:", encryptedData);
 
+    // Run Word context operations after encryptedData is confirmed
     await Word.run(async (context) => {
       try {
         console.log("Decrypting data...");
@@ -123,6 +126,7 @@ async function decryptHighlightedOOXML() {
     console.error("Error retrieving encrypted data:", error);
   }
 }
+
 
 
 
@@ -533,10 +537,10 @@ async function getSpecificXmlNode(FriendlyName) {
           return;
         }
 
-        // Search for the specific node in the parts
-        let found = false;
-        parts.forEach((part) => {
-          part.getXmlAsync((xmlResult) => {
+        // Iterate through parts to find the first match
+        const searchParts = async () => {
+          for (const part of parts) {
+            const xmlResult = await new Promise((res) => part.getXmlAsync(res));
             if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
               const xml = xmlResult.value;
               console.log("Retrieved XML Part:", xml);
@@ -556,19 +560,19 @@ async function getSpecificXmlNode(FriendlyName) {
 
               if (node.singleNodeValue) {
                 console.log(`Value for Key "${FriendlyName}":`, node.singleNodeValue.textContent);
-                found = true;
-                resolve(node.singleNodeValue.textContent);
+                return node.singleNodeValue.textContent; // Found the correct node
               }
             } else {
               console.error("Error retrieving XML:", xmlResult.error.message);
             }
-          });
-        });
+          }
+          return null; // Return null if no matching node is found
+        };
 
-        if (!found) {
-          console.log(`Key "${FriendlyName}" not found.`);
-          resolve(null);
-        }
+        // Perform the search and resolve the promise
+        searchParts()
+          .then((value) => resolve(value))
+          .catch((error) => reject(error));
       } else {
         console.error("Error retrieving custom XML parts:", result.error.message);
         reject(result.error);
@@ -576,6 +580,7 @@ async function getSpecificXmlNode(FriendlyName) {
     });
   });
 }
+
 
 
 
