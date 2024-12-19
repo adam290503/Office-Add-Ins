@@ -42,59 +42,6 @@ function copyContentWithOOXML() {
   );
 }
 
-async function decryptHighlightedCiphertext() {
-  const clearanceLevel = document.getElementById("clearance-level").value;
-  const key = keys[clearanceLevel];
-
-  if (!key) {
-    console.error("No valid key selected.");
-    return;
-  }
-
-  try {
-    await Word.run(async (context) => {
-      const selection = context.document.getSelection();
-      selection.load("text");
-      await context.sync();
-
-      const encryptedText = selection.text;
-
-      if (!encryptedText) {
-        console.error("No text selected for decryption.");
-        return;
-      }
-
-      console.log("Encrypted Text: ", encryptedText);
-      console.log("Decryption Key: ", key);
-
-      // Decrypt the ciphertext
-      const decryptedBytes = CryptoJS.AES.decrypt(encryptedText, key);
-      const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
-
-      if (!decryptedText) {
-        console.error("Decryption failed. Check the key and content.");
-        return;
-      }
-
-      console.log("Decrypted Text: ", decryptedText);
-
-      // Check if the decrypted text looks like OOXML
-      if (decryptedText.trim().startsWith('<?xml')) {
-        console.log("Detected OOXML content. Inserting as OOXML.");
-        // Replace the selection with the decrypted OOXML
-        selection.insertOoxml(decryptedText, Word.InsertLocation.replace);
-      } else {
-        console.log("Detected plain text content. Inserting as plain text.");
-        // Replace the selection with the decrypted plain text
-        selection.insertText(decryptedText, Word.InsertLocation.replace);
-      }
-
-      await context.sync();
-    });
-  } catch (error) {
-    console.error("Error decrypting ciphertext:", error);
-  }
-}
 
 
 
