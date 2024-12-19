@@ -473,9 +473,9 @@ async function getHiddenContentControlValue(FriendlyName) {
   });
 }
 
-async function addCustomXml(encrypted,FriendlyName) {
+async function addCustomXml(encrypted, FriendlyName) {
   const xml = `
-    <Metadata>
+    <Metadata xmlns="http://schemas.custom.xml">
       <Node>
         <Key>${FriendlyName}</Key>
         <Value>${encrypted}</Value>
@@ -483,23 +483,34 @@ async function addCustomXml(encrypted,FriendlyName) {
     </Metadata>
   `;
 
-  Office.context.document.customXmlParts.addAsync(xml, (result) => {
-    if (result.status === Office.AsyncResultStatus.Succeeded) {
-      console.log("Custom XML added successfully.");
-    } else {
-      console.error("Error adding custom XML:", result.error.message);
-    }
+  return new Promise((resolve, reject) => {
+    Office.context.document.customXmlParts.addAsync(xml, (result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        console.log(`Custom XML for "${FriendlyName}" added successfully.`);
+        resolve();
+      } else {
+        console.error("Error adding custom XML:", result.error.message);
+        reject(result.error);
+      }
+    });
   });
 }
 
 
+
 async function getSpecificXmlNode(FriendlyName) {
   return new Promise((resolve, reject) => {
-    Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
+    Office.context.document.customXmlParts.getByNamespaceAsync("http://schemas.custom.xml", (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const parts = result.value;
 
-        let found = false; // Track if we found the key
+        if (parts.length === 0) {
+          console.log("No custom XML parts found.");
+          resolve(null);
+          return;
+        }
+
+        let found = false;
         parts.forEach((part) => {
           part.getXmlAsync((xmlResult) => {
             if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
@@ -521,7 +532,7 @@ async function getSpecificXmlNode(FriendlyName) {
 
               if (node.singleNodeValue) {
                 found = true;
-                resolve(node.singleNodeValue.textContent); // Resolve the promise with the value
+                resolve(node.singleNodeValue.textContent);
               }
             } else {
               console.error("Error retrieving XML:", xmlResult.error.message);
@@ -531,15 +542,16 @@ async function getSpecificXmlNode(FriendlyName) {
 
         if (!found) {
           console.log(`Key "${FriendlyName}" not found.`);
-          resolve(null); // Resolve as null if the key is not found
+          resolve(null);
         }
       } else {
         console.error("Error retrieving custom XML parts:", result.error.message);
-        reject(result.error); // Reject the promise if there's an error
+        reject(result.error);
       }
     });
   });
 }
+
 
 
 
