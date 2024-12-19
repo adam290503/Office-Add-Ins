@@ -353,6 +353,11 @@ async function writeHelloWorlds() {
     body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
     await context.sync();
   }).catch(err => console.error("Error adding Hello World paragraphs:", err));
+
+  body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
+  addCustomXml(encrypted,FriendlyName);
+  getCustomXml();
+  body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
 }
 
 
@@ -455,6 +460,45 @@ async function getHiddenContentControlValue(FriendlyName) {
     
   });
 }
+
+async function addCustomXml(encrypted,FriendlyName) {
+  const xml = `
+    <Metadata>
+      <PublicKey>FriendlyName</PublicKey>
+      <PrivateKey>your-private-key</PrivateKey>
+    </Metadata>
+  `;
+
+  Office.context.document.customXmlParts.addAsync(xml, (result) => {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      console.log("Custom XML added successfully.");
+    } else {
+      console.error("Error adding custom XML:", result.error.message);
+    }
+  });
+}
+
+
+async function getCustomXml() {
+  Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      const parts = result.value;
+
+      parts.forEach((part) => {
+        part.getXmlAsync((xmlResult) => {
+          if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
+            console.log("Retrieved Custom XML:", xmlResult.value);
+          } else {
+            console.error("Error retrieving XML:", xmlResult.error.message);
+          }
+        });
+      });
+    } else {
+      console.error("Error retrieving custom XML parts:", result.error.message);
+    }
+  });
+}
+
 
 
 
