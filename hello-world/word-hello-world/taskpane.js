@@ -78,14 +78,24 @@ async function decryptHighlightedCiphertext() {
 
       console.log("Decrypted Text: ", decryptedText);
 
-      // Replace the selection with the decrypted text
-      selection.insertText(decryptedText, Word.InsertLocation.replace);
+      // Check if the decrypted text looks like OOXML
+      if (decryptedText.trim().startsWith('<?xml')) {
+        console.log("Detected OOXML content. Inserting as OOXML.");
+        // Replace the selection with the decrypted OOXML
+        selection.insertOoxml(decryptedText, Word.InsertLocation.replace);
+      } else {
+        console.log("Detected plain text content. Inserting as plain text.");
+        // Replace the selection with the decrypted plain text
+        selection.insertText(decryptedText, Word.InsertLocation.replace);
+      }
+
       await context.sync();
     });
   } catch (error) {
     console.error("Error decrypting ciphertext:", error);
   }
 }
+
 
 
 async function encryptHighlightedOOXML() {
