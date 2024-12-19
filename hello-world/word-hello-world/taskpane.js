@@ -351,13 +351,16 @@ async function writeHelloWorlds() {
       ["Bob", "25"]
     ];
     body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
-    await context.sync();
-  }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 
-  body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
+    body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
   addCustomXml(encrypted,FriendlyName);
   getCustomXml();
   body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
+  
+    await context.sync();
+  }).catch(err => console.error("Error adding Hello World paragraphs:", err));
+
+  
 }
 
 
