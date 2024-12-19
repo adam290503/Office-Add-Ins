@@ -19,7 +19,7 @@
     <Host Name="Document"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/taskpane.html"/>
+    <SourceLocation DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/taskpane_mode.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
