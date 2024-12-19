@@ -9,7 +9,6 @@ Office.onReady((info) => {
     document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
     document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
     document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
-    document.getElementById("decryptCTButton").addEventListener("click", decryptHighlightedCiphertext);
 
     Office.context.document.addHandlerAsync(
       Office.EventType.DocumentSelectionChanged,
@@ -42,9 +41,6 @@ function copyContentWithOOXML() {
   );
 }
 
-
-
-
 async function encryptHighlightedOOXML() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
@@ -56,7 +52,7 @@ async function encryptHighlightedOOXML() {
 
   Office.context.document.getSelectedDataAsync(
     Office.CoercionType.Ooxml,
-    async (result) => {
+    async(result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const ooxml = result.value;
 
@@ -490,8 +486,10 @@ async function getHiddenContentControlValue(FriendlyName) {
 }
 
 async function addCustomXml(encrypted, FriendlyName) {
+  const namespace = "http://schemas.custom.xml"; // Define a namespace
+
   const xml = `
-    <Metadata xmlns="http://schemas.custom.xml">
+    <Metadata xmlns="${namespace}">
       <Node>
         <Key>${FriendlyName}</Key>
         <Value>${encrypted}</Value>
@@ -503,8 +501,8 @@ async function addCustomXml(encrypted, FriendlyName) {
     Office.context.document.customXmlParts.addAsync(xml, (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         console.log(`Custom XML for "${FriendlyName}" added successfully.`);
-        
-        // Retrieve the added XML part for verification
+
+        // Retrieve and log the added XML part for verification
         result.value.getXmlAsync((xmlResult) => {
           if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
             console.log("Stored Custom XML:", xmlResult.value);
@@ -525,9 +523,12 @@ async function addCustomXml(encrypted, FriendlyName) {
 
 
 
+
 async function getSpecificXmlNode(FriendlyName) {
+  const namespace = "http://schemas.custom.xml"; // Use the same namespace
+
   return new Promise((resolve, reject) => {
-    Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
+    Office.context.document.customXmlParts.getByNamespaceAsync(namespace, (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         const parts = result.value;
         console.log(`Found ${parts.length} custom XML part(s).`);
@@ -536,9 +537,9 @@ async function getSpecificXmlNode(FriendlyName) {
           console.log("No custom XML parts found.");
           resolve(null);
           return;
-
         }
 
+        // Search for the specific node in the parts
         let found = false;
         parts.forEach((part) => {
           part.getXmlAsync((xmlResult) => {
@@ -546,14 +547,11 @@ async function getSpecificXmlNode(FriendlyName) {
               const xml = xmlResult.value;
               console.log("Retrieved XML Part:", xml);
 
-              // Parse the XML using DOMParser
+              // Parse the XML and find the node
               const parser = new DOMParser();
               const xmlDoc = parser.parseFromString(xml, "application/xml");
 
-              // Use XPath to find the specific node by key
               const xpath = `/Metadata/Node[Key='${FriendlyName}']/Value`;
-              console.log("XPath Query:", xpath);
-
               const node = xmlDoc.evaluate(
                 xpath,
                 xmlDoc,
@@ -566,8 +564,6 @@ async function getSpecificXmlNode(FriendlyName) {
                 console.log(`Value for Key "${FriendlyName}":`, node.singleNodeValue.textContent);
                 found = true;
                 resolve(node.singleNodeValue.textContent);
-              } else {
-                console.error(`Key "${FriendlyName}" not found in XML.`);
               }
             } else {
               console.error("Error retrieving XML:", xmlResult.error.message);
@@ -586,8 +582,6 @@ async function getSpecificXmlNode(FriendlyName) {
     });
   });
 }
-
-
 
 
 
