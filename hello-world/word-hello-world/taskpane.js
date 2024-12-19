@@ -61,13 +61,13 @@ async function encryptHighlightedOOXML() {
 
         const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
         
-        const abc = addHiddenContentControl(encrypted,"Key001");
-        const xyv = getHiddenContentControlValue("Key001");
-        //Word.run(async (context) => {
-        //  const selection = context.document.getSelection();
-        //  selection.insertText("--001--", Word.InsertLocation.replace);
-        //  await context.sync();
-        //}).catch(err => console.error("Error inserting encrypted OOXML:", err));
+        const abc = addCustomXml(encrypted,"Key001");
+        
+        Word.run(async (context) => {
+          const selection = context.document.getSelection();
+          selection.insertText("Key001", Word.InsertLocation.replace);
+          await context.sync();
+        }).catch(err => console.error("Error inserting encrypted OOXML:", err));
       } else {
         console.error("Error retrieving OOXML for encryption:", result.error.message);
       }
