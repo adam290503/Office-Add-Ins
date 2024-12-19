@@ -87,6 +87,8 @@ async function decryptHighlightedOOXML() {
   try {
     // Wait for the encrypted data to be retrieved
     const EncryptedData = await getSpecificXmlNode("Key001");
+    console.log("Encrypted Data: ", EncryptedData);
+    console.log("Decryption Key: ", key);
 
     if (!EncryptedData) {
       console.error("Encrypted data not found for the given key.");
@@ -101,6 +103,8 @@ async function decryptHighlightedOOXML() {
         // Decrypt the data
         const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
         const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+       
 
         if (!decryptedOOXML) {
           console.error("Decryption failed. Check the key and content.");
