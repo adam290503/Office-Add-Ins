@@ -372,7 +372,7 @@ async function writeHelloWorlds() {
     addCustomXml("test","sample");
     body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
 
-    const EncryptedSample = await getSpecificXmlNode("test");
+    const EncryptedSample = await getSpecificXmlNode("sample");
     body.insertParagraph(EncryptedSample, Word.InsertLocation.end);
 
 
@@ -531,6 +531,7 @@ async function getSpecificXmlNode(FriendlyName) {
           console.log("No custom XML parts found.");
           resolve(null);
           return;
+
         }
 
         let found = false;
