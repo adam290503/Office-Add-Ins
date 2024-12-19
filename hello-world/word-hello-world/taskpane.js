@@ -85,14 +85,14 @@ async function decryptHighlightedOOXML() {
   }
 
 
-  (async () => {
+  async () => {
     try {
       const EncryptedData = await getSpecificXmlNode("Key001");
       console.log("Retrieved Value:", EncryptedData);
     } catch (error) {
       console.error("Error:", error);
     }
-  })();
+  };
   
 
   console.log("Encrypted Data  ", EncryptedData);
