@@ -84,10 +84,12 @@ async function decryptHighlightedOOXML() {
     return;
   }
   const EncryptedData =  getSpecificXmlNode("Key001");
+  console.log("Encrypted Data  ", EncryptedData);
   await Word.run(async (context) => {
     
     try {
       const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
+      console.log("Decrypted bytes:", decryptedBytes);
       const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
       if (!decryptedOOXML) {
