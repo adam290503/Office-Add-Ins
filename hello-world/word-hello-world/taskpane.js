@@ -445,7 +445,10 @@ async function getHiddenContentControlValue(FriendlyName) {
       const body = context.document.body;
       body.insertParagraph("Start", Word.InsertLocation.end);
   
-      body.insertParagraph(hiddenControl.text, Word.InsertLocation.end);
+      body.insertParagraph(hiddenControl.title, Word.InsertLocation.end);
+      body.insertParagraph(hiddenControl.appearance, Word.InsertLocation.end);
+      body.insertParagraph(hiddenControl.font, Word.InsertLocation.end);
+      body.insertParagraph(hiddenControl.tag, Word.InsertLocation.end);
       body.insertParagraph("End", Word.InsertLocation.end);
       
       await context.sync();
