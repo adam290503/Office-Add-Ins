@@ -79,59 +79,49 @@ async function decryptHighlightedOOXML() {
   const clearanceLevel = document.getElementById("clearance-level").value;
   const key = keys[clearanceLevel];
 
-
   if (!key) {
     console.error("No valid key selected.");
     return;
   }
 
+  try {
+    // Retrieve the encrypted data using the updated getSpecificXmlNode function
+    const EncryptedData = await getSpecificXmlNode("Key001");
 
-
-  (async function () {
-    try {
-      const EncryptedData = "";
-      //console.log("001 - Encrypted Data  ", EncryptedData);
-      getSpecificXmlNode("Key001")
-      .then((EncryptedData) => {
-        console.log("001 Encrypted Data:", EncryptedData);
-      })
-
-      .catch((error) => {
-        console.error("Error:", error);
-      });
-      // The value is now accessible as a string
-      await Word.run(async (context) => {
-    
-        try {
-          console.log("Encrypted Data  ", EncryptedData);
-          console.log("key Data  ", key);
-          
-          const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
-          console.log("Decrypted bytes:", decryptedBytes);
-          const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
-    
-          if (!decryptedOOXML) {
-            console.error("Decryption failed. Check the key and content.");
-            return;
-          }
-    
-          // Hash the decrypted OOXML to verify integrity
-          const hash = CryptoJS.SHA256(decryptedOOXML).toString();
-          console.log("Decrypted OOXML Hash:", hash);
-    
-          selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
-          await context.sync();
-        } catch (err) {
-          console.error("Error decrypting OOXML:", err);
-        }
-      });
-    } catch (error) {
-      console.error("Error:", error);
+    if (!EncryptedData) {
+      console.error("Encrypted data not found for the given key.");
+      return;
     }
-  })();
- 
-   
-  
+
+    await Word.run(async (context) => {
+      try {
+        console.log("Encrypted Data: ", EncryptedData);
+        console.log("Decryption Key: ", key);
+
+        // Decrypt the data
+        const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
+        const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+        if (!decryptedOOXML) {
+          console.error("Decryption failed. Check the key and content.");
+          return;
+        }
+
+        // Verify the integrity of the decrypted content
+        const hash = CryptoJS.SHA256(decryptedOOXML).toString();
+        console.log("Decrypted OOXML Hash: ", hash);
+
+        // Insert the decrypted content back into the Word document
+        const selection = context.document.getSelection();
+        selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
+        await context.sync();
+      } catch (err) {
+        console.error("Error decrypting OOXML:", err);
+      }
+    });
+  } catch (error) {
+    console.error("Error retrieving encrypted data:", error);
+  }
 }
 
 async function serializeSelection(context, selection) {
@@ -504,50 +494,53 @@ async function addCustomXml(encrypted,FriendlyName) {
 
 
 async function getSpecificXmlNode(FriendlyName) {
-  Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
-    if (result.status === Office.AsyncResultStatus.Succeeded) {
-      const parts = result.value;
+  return new Promise((resolve, reject) => {
+    Office.context.document.customXmlParts.getByNamespaceAsync("", (result) => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        const parts = result.value;
 
-      parts.forEach((part) => {
-        part.getXmlAsync((xmlResult) => {
-          if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
-            const xml = xmlResult.value;
+        let found = false; // Track if we found the key
+        parts.forEach((part) => {
+          part.getXmlAsync((xmlResult) => {
+            if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
+              const xml = xmlResult.value;
 
-            // Parse the XML using DOMParser
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xml, "application/xml");
+              // Parse the XML using DOMParser
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(xml, "application/xml");
 
-            // Use XPath to find the specific node by key
-            const xpath = `/Metadata/Node[Key='${FriendlyName}']/Value`;
-            const node = xmlDoc.evaluate(
-              xpath,
-              xmlDoc,
-              null,
-              XPathResult.FIRST_ORDERED_NODE_TYPE,
-              null
-            );
-
-            if (node.singleNodeValue) {
-              console.log(
-                `Value for Key "${FriendlyName}":`,
-                node.singleNodeValue.textContent
+              // Use XPath to find the specific node by key
+              const xpath = `/Metadata/Node[Key='${FriendlyName}']/Value`;
+              const node = xmlDoc.evaluate(
+                xpath,
+                xmlDoc,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
               );
+
               if (node.singleNodeValue) {
-                return node.singleNodeValue.textContent; // Return the node value
+                found = true;
+                resolve(node.singleNodeValue.textContent); // Resolve the promise with the value
               }
             } else {
-              console.log(`Key "${FriendlyName}" not found.`);
+              console.error("Error retrieving XML:", xmlResult.error.message);
             }
-          } else {
-            console.error("Error retrieving XML:", xmlResult.error.message);
-          }
+          });
         });
-      });
-    } else {
-      console.error("Error retrieving custom XML parts:", result.error.message);
-    }
+
+        if (!found) {
+          console.log(`Key "${FriendlyName}" not found.`);
+          resolve(null); // Resolve as null if the key is not found
+        }
+      } else {
+        console.error("Error retrieving custom XML parts:", result.error.message);
+        reject(result.error); // Reject the promise if there's an error
+      }
+    });
   });
 }
+
 
 
 
