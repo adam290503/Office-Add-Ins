@@ -372,6 +372,11 @@ async function writeHelloWorlds() {
     addCustomXml("test","sample");
     body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
 
+    const EncryptedSample = await getSpecificXmlNode("test");
+    body.insertParagraph(EncryptedSample, Word.InsertLocation.end);
+
+
+
     await context.sync();
   }).catch(err => console.error("Error adding Hello World paragraphs:", err));
 
