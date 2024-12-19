@@ -12,7 +12,7 @@
       color: #333;
     }
 
-    label, button, select {
+    label, button, select, input {
       font-size: 14px;
       margin: 5px 0;
     }
@@ -32,7 +32,7 @@
       background-color: #005A9E;
     }
 
-    select {
+    select, input {
       padding: 8px;
       border: 1px solid #ccc;
       border-radius: 5px;
@@ -55,17 +55,21 @@
   </select>
   <br>
 
-  
+  <label for="unique-id">Enter Unique Identifier for Encryption:</label>
+  <input type="text" id="unique-id" placeholder="Enter identifier (e.g., Key001)">
+  <br>
+
   <button id="writeButton">Write To Page</button>
   <button id="protectButton">Encrypt Entire Document</button>
   <button id="unprotectButton">Decrypt Entire Document</button>
-  <button id="encryptOOXMLButton">Encrypt Highlighted OOXML</button>
-  <button id="decryptOOXMLButton">Decrypt Highlighted OOXML</button>
+  <button id="encryptOOXMLButton">Encrypt Highlighted</button>
+  <button id="decryptOOXMLButton">Decrypt Highlighted</button>
 
   <div id="notification"></div>
 
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script src="taskpane_mode.js"></script>
-</body>
+
+  </body>
 </html>
