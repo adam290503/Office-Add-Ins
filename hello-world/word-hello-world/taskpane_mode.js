@@ -33,7 +33,7 @@ function getUniqueIdentifier() {
         alert("Please enter a unique identifier for encryption.");
         return null;
     }
-    // Optional: Add regex to validate uniqueId format if needed
+    
     return uniqueId;
 }
 
