@@ -2,7 +2,6 @@
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Word) {
-        document.getElementById("writeButton").addEventListener("click", writeHelloWorlds);
         document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
         document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
         document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
@@ -275,26 +274,7 @@ async function decryptEntireDocument() {
     }
 }
 
-async function writeHelloWorlds() {
-    await Word.run(async (context) => {
-        const body = context.document.body;
-        body.insertParagraph("Hello world! Hello world!", Word.InsertLocation.end);
 
-        const tableValues = [
-            ["Name", "Age"],
-            ["Alice", "30"],
-            ["Bob", "25"]
-        ];
-        body.insertTable(tableValues.length, tableValues[0].length, Word.InsertLocation.end, tableValues);
-
-        body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
-        addCustomXml("test", "sample");
-        getSpecificXmlPartContent("sample");
-        body.insertParagraph("Finish Property xml add", Word.InsertLocation.end);
-
-        await context.sync();
-    }).catch(err => console.error("Error adding Hello World paragraphs:", err));
-}
 
 /**
  * Function to add the custom Xml part to the document
