@@ -1,5 +1,3 @@
-/* global Word, Office, CryptoJS */
-
 Office.onReady((info) => {
     if (info.host === Office.HostType.Word) {
         document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
@@ -28,8 +26,8 @@ const keys = {
 let copiedOOXML = "";
 
 /**
- * Retrieves the unique identifier entered by the user.
- * @returns {String|null} The unique identifier or null if invalid.
+ * Gets unique identifier entered by the user.
+ * @returns {String|null} Returns either the uniqueidentifier(string) or null (for error)
  */
 function getUniqueIdentifier() {
     const uniqueIdInput = document.getElementById("unique-id");
@@ -61,7 +59,7 @@ function copyContentWithOOXML() {
 }
 
 /**
- * Handle the encryption of the content.
+ * Handle the encryption content.
  */
 async function encryptHighlightedOOXML() {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -85,7 +83,7 @@ async function encryptHighlightedOOXML() {
                 const hash = CryptoJS.SHA256(ooxml).toString();
                 console.log("OOXML Hash:", hash);
 
-                // Delete existing custom XML part with the same uniqueId if it exists
+                // Deletes existing custom XML part with the same uniqueId if it exists
                 await deleteSpecificXmlPart(uniqueId);
 
                 // Encrypt the OOXML using the key
@@ -299,7 +297,7 @@ async function displayAllKeys() {
     const namespace = "http://schemas.custom.xml";
 
     try {
-        // Step 1: Retrieve all custom XML parts with the specified namespace
+        //Retrieve all custom XML parts with the specified namespace
         const customXmlParts = await getAllCustomXmlParts(namespace);
 
         if (customXmlParts.length === 0) {
@@ -323,7 +321,7 @@ async function displayAllKeys() {
                     });
                 });
 
-                // Step 3: Parse XML and extract keys
+                //  Parse XML and extract keys
                 const keys = getKeysFromXml(xml, namespace);
                 allKeys = allKeys.concat(keys);
             } catch (err) {
@@ -339,7 +337,7 @@ async function displayAllKeys() {
         // Remove duplicate keys, if any
         const uniqueKeys = [...new Set(allKeys)];
 
-        // Step 4: Insert the list of keys into the document
+        // Insert the list of keys into the document
         await Word.run(async (context) => {
             const body = context.document.body;
 
@@ -492,7 +490,7 @@ async function deleteSpecificXmlPart(friendlyKeyName) {
                                         }
                                     });
                                 } else {
-                                    res(); // This part does not contain the key; move to next
+                                    res(); 
                                 }
                             } else {
                                 console.error("Error retrieving XML for deletion:", xmlResult.error.message);
@@ -541,7 +539,7 @@ function getKeysFromXml(xml, namespace) {
     const xmlDoc = parser.parseFromString(xml, "application/xml");
     const keys = [];
 
-    // Select all <Node> elements within the specified namespace
+    // Select all Node elements within the specified namespace
     const nodes = xmlDoc.getElementsByTagNameNS(namespace, "Node");
 
     for (let node of nodes) {
@@ -559,8 +557,8 @@ function getKeysFromXml(xml, namespace) {
  * Deletes a specific key and its associated value from the custom XML parts.
  */
 async function deleteKey() {
-    const uniqueId = getUniqueIdentifier(); // Retrieve the unique identifier entered by the user
-    if (!uniqueId) return; // If no unique ID is entered, exit the function
+    const uniqueId = getUniqueIdentifier(); //;
+    if (!uniqueId) return; // exit if empty unique
 
     try {
         // Call the deleteSpecificXmlPart function to delete the XML part associated with the uniqueId
