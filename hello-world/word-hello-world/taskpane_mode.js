@@ -345,7 +345,7 @@ async function displayAllKeys() {
             body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
 
             // Insert each key as a bulleted list item
-            const listItems = uniqueKeys.map(key => `• ${key}`).join("\n");
+            const listItems = uniqueKeys.map(key => `${key}`).join("\n");
             body.insertParagraph(listItems, Word.InsertLocation.end);
 
             await context.sync();
