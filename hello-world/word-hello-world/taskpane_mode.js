@@ -7,6 +7,8 @@ Office.onReady((info) => {
         document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
         document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
         document.getElementById("displayKeysButton").addEventListener("click", displayAllKeys);
+        document.getElementById("deleteKeysButton").addEventListener("click", deleteKey);
+
 
         Office.context.document.addHandlerAsync(
             Office.EventType.DocumentSelectionChanged,
