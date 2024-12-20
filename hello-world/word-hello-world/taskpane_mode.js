@@ -141,30 +141,35 @@ async function encryptEntireDocument() {
         return;
     }
 
-    await Word.run(async (context) => {
+    Word.run(async (context) => {
+        const body = context.document.body;
+        const ooxml = body.getOoxml(); // Retrieve the entire document as OOXML
+        await context.sync();
+
         try {
-            const body = context.document.body;
-            body.load("text");
-            await context.sync();
+            const hash = CryptoJS.SHA256(ooxml.value).toString();
+            console.log("OOXML Hash:", hash);
 
-            const documentContent = body.text; // Get the entire document content
-            const encryptedContent = CryptoJS.AES.encrypt(documentContent, key).toString();
+            // Delete all custom XML parts to ensure no conflicts
+            await deleteXmlParts();
 
-            // Add the encrypted content to custom XML with the hardcoded key name "Key001"
-            await addCustomXml(encryptedContent, "Key001");
+            // Encrypt the OOXML using the key
+            const encrypted = CryptoJS.AES.encrypt(ooxml.value, key).toString();
 
-            // Replace document content with the key reference
+            // Add the encrypted content as a custom XML part
+            await addCustomXml(encrypted, "Key001");
+
+            // Replace the entire document with the key reference
             body.clear();
             body.insertText("Key001", Word.InsertLocation.start);
             await context.sync();
 
-            console.log("Entire document encrypted and key reference inserted.");
+            console.log("Entire document encrypted successfully.");
         } catch (error) {
-            console.error("Error encrypting the entire document:", error);
+            console.error("Error encrypting the document:", error);
         }
-    });
+    }).catch((err) => console.error("Error accessing the document:", err));
 }
-
 
 async function decryptEntireDocument() {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -176,35 +181,43 @@ async function decryptEntireDocument() {
     }
 
     try {
-        // Retrieve the encrypted content from custom XML using the hardcoded key name "Key001"
+        // Retrieve the encrypted data from the custom XML part
         const encryptedContent = await getSpecificXmlPartContent("Key001");
 
         if (!encryptedContent) {
-            console.error(`Encrypted content not found for key: Key001`);
+            console.error("Encrypted data not found for the given key.");
             return;
         }
 
-        await Word.run(async (context) => {
+        Word.run(async (context) => {
             try {
-                const decryptedBytes = CryptoJS.AES.decrypt(encryptedContent, key);
-                const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                console.log("Encrypted Data:", encryptedContent);
+                console.log("Decryption Key:", key);
 
-                if (!decryptedContent) {
+                // Decrypt the encrypted OOXML
+                const decryptedBytes = CryptoJS.AES.decrypt(encryptedContent, key);
+                const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+                if (!decryptedOOXML) {
                     console.error("Decryption failed. Check the key and content.");
                     return;
                 }
 
-                // Replace the document content with the decrypted content
+                // Verify the integrity of the decrypted content
+                const hash = CryptoJS.SHA256(decryptedOOXML).toString();
+                console.log("Decrypted OOXML Hash:", hash);
+
+                // Replace the entire document with the decrypted OOXML
                 const body = context.document.body;
                 body.clear();
-                body.insertText(decryptedContent, Word.InsertLocation.start);
+                body.insertOoxml(decryptedOOXML, Word.InsertLocation.start);
                 await context.sync();
 
                 console.log("Entire document decrypted successfully.");
             } catch (error) {
-                console.error("Error decrypting the document content:", error);
+                console.error("Error decrypting the document:", error);
             }
-        });
+        }).catch((err) => console.error("Error accessing the document:", err));
     } catch (error) {
         console.error("Error retrieving encrypted content:", error);
     }
@@ -273,7 +286,7 @@ function getKeyPair(FriendlyName) {
         }
     );
 }
-
+/*
 // We will use this if the proerpty bag does not work - AG 
 async function addHiddenContentControl(encrypted, FriendlyName) {
     await Word.run(async (context) => {
@@ -327,6 +340,7 @@ async function getHiddenContentControlValue(FriendlyName) {
 
     });
 }
+    */
 
 /**
  * Function to add the custom Xml part to the document
