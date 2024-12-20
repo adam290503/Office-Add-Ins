@@ -37,7 +37,7 @@ function getUniqueIdentifier() {
         alert("Please enter a unique identifier for encryption.");
         return null;
     }
-    
+
     return uniqueId;
 }
 
@@ -510,69 +510,42 @@ async function deleteSpecificXmlPart(friendlyKeyName) {
 }
 
 /**
- * Displays all existing unique identifiers (keys) in the document.
+ * Retrieves all custom XML parts with the specified namespace.
+ * @param {String} namespace - The XML namespace to filter custom XML parts.
+ * @returns {Promise<Array>} - A promise that resolves to an array of customXmlPart objects.
  */
-async function displayAllKeys() {
-    const namespace = "http://schemas.custom.xml";
-
-    try {
-        // Step 1: Retrieve all custom XML parts with the specified namespace
-        const customXmlParts = await getAllCustomXmlParts(namespace);
-
-        if (customXmlParts.length === 0) {
-            alert("No keys found in the document.");
-            return;
-        }
-
-        let allKeys = [];
-
-        // Step 2: Iterate through each custom XML part to extract keys
-        for (let part of customXmlParts) {
-            try {
-                // Retrieve the XML content of the custom XML part
-                const xml = await new Promise((resolve, reject) => {
-                    part.getXmlAsync((result) => {
-                        if (result.status === Office.AsyncResultStatus.Succeeded) {
-                            resolve(result.value);
-                        } else {
-                            reject(result.error.message);
-                        }
-                    });
-                });
-
-                // Step 3: Parse XML and extract keys
-                const keys = getKeysFromXml(xml, namespace);
-                allKeys = allKeys.concat(keys);
-            } catch (err) {
-                console.error("Error retrieving XML from a custom XML part:", err);
+function getAllCustomXmlParts(namespace) {
+    return new Promise((resolve, reject) => {
+        Office.context.document.customXmlParts.getByNamespaceAsync(namespace, (result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+                resolve(result.value);
+            } else {
+                reject(result.error.message);
             }
-        }
-
-        if (allKeys.length === 0) {
-            alert("No keys found in the document.");
-            return;
-        }
-
-        // Remove duplicate keys, if any
-        const uniqueKeys = [...new Set(allKeys)];
-
-        // Step 4: Insert the list of keys into the document
-        await Word.run(async (context) => {
-            const body = context.document.body;
-
-            // Insert a heading
-            body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
-
-            // Insert each key as a bulleted list item
-            const listItems = uniqueKeys.map(key => `• ${key}`).join("\n");
-            body.insertParagraph(listItems, Word.InsertLocation.end);
-
-            await context.sync();
         });
+    });
+}
 
-        console.log("All keys have been displayed successfully.");
-    } catch (error) {
-        console.error("Error in displayAllKeys:", error);
-        alert("An error occurred while retrieving keys.");
+/**
+ * Extracts unique keys from the given XML string.
+ * @param {String} xml - The XML content as a string.
+ * @param {String} namespace - The XML namespace used in the document.
+ * @returns {Array} - An array of unique identifier strings.
+ */
+function getKeysFromXml(xml, namespace) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xml, "application/xml");
+    const keys = [];
+
+    // Select all <Node> elements within the specified namespace
+    const nodes = xmlDoc.getElementsByTagNameNS(namespace, "Node");
+
+    for (let node of nodes) {
+        // Iterate through child elements of <Node>
+        for (let child of node.children) {
+            keys.push(child.tagName);
+        }
     }
+
+    return keys;
 }
