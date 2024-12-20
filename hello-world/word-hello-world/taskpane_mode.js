@@ -1,4 +1,3 @@
-
 /* global Word, Office, CryptoJS */
 
 Office.onReady((info) => {
@@ -26,6 +25,18 @@ const keys = {
 
 let copiedOOXML = "";
 
+function getUniqueIdentifier() {
+    const uniqueIdInput = document.getElementById("unique-id");
+    const uniqueId = uniqueIdInput.value.trim();
+    if (!uniqueId) {
+        console.error("Unique Identifier is required.");
+        alert("Please enter a unique identifier for encryption.");
+        return null;
+    }
+    // Optional: Add regex to validate uniqueId format if needed
+    return uniqueId;
+}
+
 function copyContentWithOOXML() {
     Office.context.document.getSelectedDataAsync(
         Office.CoercionType.Ooxml,
@@ -41,7 +52,7 @@ function copyContentWithOOXML() {
 }
 
 /**
-Handle the encryption of the content
+ * Handle the encryption of the content
  */
 async function encryptHighlightedOOXML() {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -49,8 +60,12 @@ async function encryptHighlightedOOXML() {
 
     if (!key) {
         console.error("No valid key selected.");
+        alert("Please select a valid clearance level.");
         return;
     }
+
+    const uniqueId = getUniqueIdentifier();
+    if (!uniqueId) return;
 
     Office.context.document.getSelectedDataAsync(
         Office.CoercionType.Ooxml,
@@ -61,18 +76,23 @@ async function encryptHighlightedOOXML() {
                 const hash = CryptoJS.SHA256(ooxml).toString();
                 console.log("OOXML Hash:", hash);
 
-                // Let's delete all the custom xml parts
-                const deleteParts = await deleteXmlParts();
+                // Delete existing custom XML part with the same uniqueId if it exists
+                await deleteSpecificXmlPart(uniqueId);
 
+                // Encrypt the OOXML using the key
                 const encrypted = CryptoJS.AES.encrypt(ooxml, key).toString();
 
-                const abc = await addCustomXml(encrypted, "Key001");
+                // Add the encrypted content as a custom XML part with the uniqueId
+                await addCustomXml(encrypted, uniqueId);
 
+                // Insert the uniqueId into the document
                 Word.run(async (context) => {
                     const selection = context.document.getSelection();
-                    selection.insertText("Key001", Word.InsertLocation.replace);
+                    selection.insertText(uniqueId, Word.InsertLocation.replace);
                     await context.sync();
                 }).catch(err => console.error("Error inserting encrypted OOXML:", err));
+
+                console.log(`Content encrypted with key "${uniqueId}" successfully.`);
             } else {
                 console.error("Error retrieving OOXML for encryption:", result.error.message);
             }
@@ -89,29 +109,35 @@ async function decryptHighlightedOOXML() {
 
     if (!key) {
         console.error("No valid key selected.");
+        alert("Please select a valid clearance level.");
         return;
     }
 
-    try {
-        // Retrieve the encrypted data using the updated getSpecificXmlPartContent function
-        const EncryptedData = await getSpecificXmlPartContent("Key001");
+    const uniqueId = getUniqueIdentifier();
+    if (!uniqueId) return;
 
-        if (!EncryptedData) {
-            console.error("Encrypted data not found for the given key.");
+    try {
+        // Retrieve the encrypted data using the uniqueId
+        const encryptedData = await getSpecificXmlPartContent(uniqueId);
+
+        if (!encryptedData) {
+            console.error(`Encrypted data not found for the key "${uniqueId}".`);
+            alert(`No encrypted data found for the key "${uniqueId}".`);
             return;
         }
 
         await Word.run(async (context) => {
             try {
-                console.log("Encrypted Data: ", EncryptedData);
+                console.log("Encrypted Data: ", encryptedData);
                 console.log("Decryption Key: ", key);
 
                 // Decrypt the data
-                const decryptedBytes = CryptoJS.AES.decrypt(EncryptedData, key);
+                const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
                 const decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
 
                 if (!decryptedOOXML) {
                     console.error("Decryption failed. Check the key and content.");
+                    alert("Decryption failed. Please verify your key and try again.");
                     return;
                 }
 
@@ -123,12 +149,17 @@ async function decryptHighlightedOOXML() {
                 const selection = context.document.getSelection();
                 selection.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
                 await context.sync();
+
+                console.log(`Content decrypted with key "${uniqueId}" successfully.`);
+                alert(`Content decrypted successfully with key "${uniqueId}".`);
             } catch (err) {
                 console.error("Error decrypting OOXML:", err);
+                alert("An error occurred during decryption.");
             }
         });
     } catch (error) {
         console.error("Error retrieving encrypted data:", error);
+        alert("Failed to retrieve encrypted data.");
     }
 }
 
@@ -138,8 +169,12 @@ async function encryptEntireDocument() {
 
     if (!key) {
         console.error("No valid key selected.");
+        alert("Please select a valid clearance level.");
         return;
     }
+
+    const uniqueId = getUniqueIdentifier();
+    if (!uniqueId) return;
 
     Word.run(async (context) => {
         const body = context.document.body;
@@ -150,25 +185,30 @@ async function encryptEntireDocument() {
             const hash = CryptoJS.SHA256(ooxml.value).toString();
             console.log("OOXML Hash:", hash);
 
-            // Delete all custom XML parts to ensure no conflicts
-            await deleteXmlParts();
+            // Delete existing custom XML part with the same uniqueId if it exists
+            await deleteSpecificXmlPart(uniqueId);
 
             // Encrypt the OOXML using the key
             const encrypted = CryptoJS.AES.encrypt(ooxml.value, key).toString();
 
-            // Add the encrypted content as a custom XML part
-            await addCustomXml(encrypted, "Key001");
-            
-            //note key reference
+            // Add the encrypted content as a custom XML part with the uniqueId
+            await addCustomXml(encrypted, uniqueId);
+
+            // Clear the document and insert the uniqueId as a reference
             body.clear();
-            body.insertText("Key001", Word.InsertLocation.start);
+            body.insertText(uniqueId, Word.InsertLocation.start);
             await context.sync();
 
-            console.log("Entire document encrypted successfully.");
+            console.log(`Entire document encrypted with key "${uniqueId}" successfully.`);
+            alert(`Entire document encrypted successfully with key "${uniqueId}".`);
         } catch (error) {
             console.error("Error encrypting the document:", error);
+            alert("An error occurred during encryption.");
         }
-    }).catch((err) => console.error("Error accessing the document:", err));
+    }).catch((err) => {
+        console.error("Error accessing the document:", err);
+        alert("Failed to access the document for encryption.");
+    });
 }
 
 async function decryptEntireDocument() {
@@ -177,15 +217,20 @@ async function decryptEntireDocument() {
 
     if (!key) {
         console.error("No valid key selected.");
+        alert("Please select a valid clearance level.");
         return;
     }
 
+    const uniqueId = getUniqueIdentifier();
+    if (!uniqueId) return;
+
     try {
-        // Retrieve the encrypted data from the custom XML part
-        const encryptedContent = await getSpecificXmlPartContent("Key001");
+        // Retrieve the encrypted data from the custom XML part using the uniqueId
+        const encryptedContent = await getSpecificXmlPartContent(uniqueId);
 
         if (!encryptedContent) {
-            console.error("Encrypted data not found for the given key.");
+            console.error(`Encrypted data not found for the key "${uniqueId}".`);
+            alert(`No encrypted data found for the key "${uniqueId}".`);
             return;
         }
 
@@ -200,6 +245,7 @@ async function decryptEntireDocument() {
 
                 if (!decryptedOOXML) {
                     console.error("Decryption failed. Check the key and content.");
+                    alert("Decryption failed. Please verify your key and try again.");
                     return;
                 }
 
@@ -213,16 +259,21 @@ async function decryptEntireDocument() {
                 body.insertOoxml(decryptedOOXML, Word.InsertLocation.start);
                 await context.sync();
 
-                console.log("Entire document decrypted successfully.");
+                console.log(`Entire document decrypted with key "${uniqueId}" successfully.`);
+                alert(`Entire document decrypted successfully with key "${uniqueId}".`);
             } catch (error) {
                 console.error("Error decrypting the document:", error);
+                alert("An error occurred during decryption.");
             }
-        }).catch((err) => console.error("Error accessing the document:", err));
+        }).catch((err) => {
+            console.error("Error accessing the document:", err);
+            alert("Failed to access the document for decryption.");
+        });
     } catch (error) {
         console.error("Error retrieving encrypted content:", error);
+        alert("Failed to retrieve encrypted content.");
     }
 }
-
 
 async function writeHelloWorlds() {
     await Word.run(async (context) => {
@@ -238,114 +289,17 @@ async function writeHelloWorlds() {
 
         body.insertParagraph("Start Property xml add", Word.InsertLocation.end);
         addCustomXml("test", "sample");
-        getCustomXml();
-        body.insertParagraph("Fionish Property xml add", Word.InsertLocation.end);
+        getSpecificXmlPartContent("sample");
+        body.insertParagraph("Finish Property xml add", Word.InsertLocation.end);
 
         await context.sync();
     }).catch(err => console.error("Error adding Hello World paragraphs:", err));
-
-
 }
-
-// Property bag to store the encruypted data so the document remains workable 
-function setKeyPair(encrypted, FriendlyName) {
-    const keyPair = {
-        "public-key": FriendlyName,
-        "EncryptedBlock": encrypted
-    };
-
-    Office.context.document.properties.custom.setAsync(
-        FriendlyName,
-        JSON.stringify(keyPair),
-        (result) => {
-            if (result.status === Office.AsyncResultStatus.Succeeded) {
-                console.log("Key pair stored successfully.");
-            }
-            else {
-                console.error("Failed to store key pair:", result.error.message);
-
-            }
-        }
-    );
-}
-
-
-function getKeyPair(FriendlyName) {
-    Office.context.document.properties.custom.getAsync(
-        FriendlyName,
-        (result) => {
-            if (result.status === Office.AsyncResultStatus.Succeeded) {
-                const keyPair = JSON.parse(result.value);
-                console.log("Retrieved Key Pair:", keyPair);
-                console.log("EncryptedBlock");
-                console.log(keyPair.EncryptedBlock);
-                return keyPair.EncryptedBlock;
-            } else {
-                console.error("Failed to retrieve key pair:", result.error.message);
-            }
-        }
-    );
-}
-/*
-// We will use this if the proerpty bag does not work - AG 
-async function addHiddenContentControl(encrypted, FriendlyName) {
-    await Word.run(async (context) => {
-        const range = context.document.getSelection();
-        const contentControl = range.insertContentControl();
-        contentControl.title = FriendlyName;
-        contentControl.tag = FriendlyName;
-        contentControl.insertText(
-            encrypted,
-            Word.InsertLocation.replace
-        );
-        contentControl.appearance = "none";
-        contentControl.font.hidden = true;
-        await context.sync();
-        console.log("Hidden content control added.");
-    });
-}
-
-async function getHiddenContentControlValue(FriendlyName) {
-    await Word.run(async (context) => {
-        // Get all content controls
-        const contentControls = context.document.contentControls;
-        contentControls.load("items/tag,title,text");
-
-        await context.sync();
-
-        // Find the content control by tag
-        const hiddenControl = contentControls.items.find(
-            (control) => control.tag === FriendlyName
-        );
-
-        if (hiddenControl) {
-            console.log("Hidden Content Control Value:", hiddenControl.text);
-        } else {
-            console.log("No content control with the specified tag found.");
-        }
-
-        // Logging for debugging 
-
-
-        const body = context.document.body;
-        body.insertParagraph("Start", Word.InsertLocation.end);
-
-        body.insertParagraph(hiddenControl.title, Word.InsertLocation.end);
-        body.insertParagraph(hiddenControl.appearance, Word.InsertLocation.end);
-        body.insertParagraph(hiddenControl.font, Word.InsertLocation.end);
-        body.insertParagraph(hiddenControl.tag, Word.InsertLocation.end);
-        body.insertParagraph("End", Word.InsertLocation.end);
-
-        await context.sync();
-
-    });
-}
-    */
 
 /**
  * Function to add the custom Xml part to the document
- * @param {String} encryptedKeyValue encrypted content as key value.
- * @param {String} friendlyKeyName userfriendly key name.
+ * @param {String} encryptedKeyValue - Encrypted content as key value.
+ * @param {String} friendlyKeyName - User-friendly unique key name.
  */
 async function addCustomXml(encryptedKeyValue, friendlyKeyName) {
     const xml = `
@@ -359,8 +313,7 @@ async function addCustomXml(encryptedKeyValue, friendlyKeyName) {
     return new Promise((resolve, reject) => {
         Office.context.document.customXmlParts.addAsync(xml, (result) => {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
-                console.log(`Custom XML added "${xml}".`);
-                console.log(`Custom XML for "${friendlyKeyName}" added successfully.`);
+                console.log(`Custom XML added for key "${friendlyKeyName}".`);
                 resolve();
             } else {
                 console.error("Error adding custom XML:", result.error.message);
@@ -371,8 +324,9 @@ async function addCustomXml(encryptedKeyValue, friendlyKeyName) {
 }
 
 /**
- * Function to add the custom Xml part to the document
- * @param {String} friendlyKeyName userfriendly key name.
+ * Retrieves the encrypted content from a specific custom XML part identified by the unique key.
+ * @param {String} friendlyKeyName - User-friendly unique key name.
+ * @returns {Promise<String|null>} - The encrypted content or null if not found.
  */
 async function getSpecificXmlPartContent(friendlyKeyName) {
     return new Promise((resolve, reject) => {
@@ -386,37 +340,45 @@ async function getSpecificXmlPartContent(friendlyKeyName) {
                     return;
                 }
 
-                parts.forEach((part) => {
+                let found = false;
+                let encryptedValue = null;
+
+                const checkPart = (index) => {
+                    if (index >= parts.length) {
+                        resolve(encryptedValue);
+                        return;
+                    }
+
+                    const part = parts[index];
                     part.getXmlAsync((xmlResult) => {
                         if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
                             const xml = xmlResult.value;
-                            console.error("XML retrieved:", xml);
                             // Parse the XML using DOMParser
                             const parser = new DOMParser();
                             const xmlDoc = parser.parseFromString(xml, "application/xml");
-                            console.error("XML DOC:", xmlDoc);
 
                             // Define the namespace URI
                             const namespaceURI = "http://schemas.custom.xml";
 
-                            // Query the Key001 node using the namespace
-                            const key001Node = xmlDoc.getElementsByTagNameNS(namespaceURI, friendlyKeyName)[0];
+                            // Query the node with the unique key
+                            const keyNode = xmlDoc.getElementsByTagNameNS(namespaceURI, friendlyKeyName)[0];
 
-                            // Retrieve the value
-                            const key001Value = key001Node ? key001Node.textContent : null;
-
-                            console.log(`"${friendlyKeyName}" Value:`, key001Value);
-
-                            if (key001Value) {
+                            if (keyNode) {
+                                encryptedValue = keyNode.textContent;
                                 found = true;
-                                resolve(key001Value);
+                                resolve(encryptedValue);
+                            } else {
+                                // Continue searching the next part
+                                checkPart(index + 1);
                             }
                         } else {
                             console.error("Error retrieving XML:", xmlResult.error.message);
                             reject(xmlResult.error.message);
                         }
                     });
-                });
+                };
+
+                checkPart(0);
             } else {
                 console.error("Error retrieving custom XML parts:", result.error.message);
                 reject(result.error);
@@ -426,34 +388,60 @@ async function getSpecificXmlPartContent(friendlyKeyName) {
 }
 
 /**
- * Function to delete the custom Xml part from the document
+ * Deletes a specific custom XML part identified by the unique key.
+ * @param {String} friendlyKeyName - User-friendly unique key name.
+ * @returns {Promise<void>}
  */
-async function deleteXmlParts() {
+async function deleteSpecificXmlPart(friendlyKeyName) {
     return new Promise((resolve, reject) => {
         Office.context.document.customXmlParts.getByNamespaceAsync("http://schemas.custom.xml", (result) => {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
                 const parts = result.value;
 
                 if (parts.length === 0) {
-                    console.log("deleteXmlParts: No custom XML parts found.");
-                    resolve(null);
+                    console.log("No custom XML parts found to delete.");
+                    resolve();
                     return;
                 }
 
-                let partCount = 0;
-                let partsLength = parts.length;
+                let deletePromises = [];
 
                 parts.forEach((part) => {
-                    part.deleteAsync(function (eventArgs) {
-                        console.log("deleteXmlParts: The XML Part has been deleted.");
-                        partCount++;
-                    });
-                    if (partsLength == partCount) {
-                        resolve('Success');
-                    }
+                    deletePromises.push(new Promise((res, rej) => {
+                        part.getXmlAsync((xmlResult) => {
+                            if (xmlResult.status === Office.AsyncResultStatus.Succeeded) {
+                                const xml = xmlResult.value;
+                                const parser = new DOMParser();
+                                const xmlDoc = parser.parseFromString(xml, "application/xml");
+                                const namespaceURI = "http://schemas.custom.xml";
+                                const keyNode = xmlDoc.getElementsByTagNameNS(namespaceURI, friendlyKeyName)[0];
+
+                                if (keyNode) {
+                                    part.deleteAsync((deleteResult) => {
+                                        if (deleteResult.status === Office.AsyncResultStatus.Succeeded) {
+                                            console.log(`Deleted custom XML part for key "${friendlyKeyName}".`);
+                                            res();
+                                        } else {
+                                            console.error(`Error deleting custom XML part for key "${friendlyKeyName}":`, deleteResult.error.message);
+                                            rej(deleteResult.error);
+                                        }
+                                    });
+                                } else {
+                                    res(); // This part does not contain the key; move to next
+                                }
+                            } else {
+                                console.error("Error retrieving XML for deletion:", xmlResult.error.message);
+                                rej(xmlResult.error);
+                            }
+                        });
+                    }));
                 });
+
+                Promise.all(deletePromises)
+                    .then(() => resolve())
+                    .catch(err => reject(err));
             } else {
-                console.error("deleteXmlParts: Error retrieving custom XML parts:", result.error.message);
+                console.error("Error retrieving custom XML parts for deletion:", result.error.message);
                 reject(result.error);
             }
         });
