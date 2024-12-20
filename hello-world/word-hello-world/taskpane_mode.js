@@ -158,8 +158,8 @@ async function encryptEntireDocument() {
 
             // Add the encrypted content as a custom XML part
             await addCustomXml(encrypted, "Key001");
-
-            // Replace the entire document with the key reference
+            
+            //note key reference
             body.clear();
             body.insertText("Key001", Word.InsertLocation.start);
             await context.sync();
