@@ -553,3 +553,23 @@ function getKeysFromXml(xml, namespace) {
 
     return keys;
 }
+
+
+/**
+ * Deletes a specific key and its associated value from the custom XML parts.
+ */
+async function deleteKey() {
+    const uniqueId = getUniqueIdentifier(); // Retrieve the unique identifier entered by the user
+    if (!uniqueId) return; // If no unique ID is entered, exit the function
+
+    try {
+        // Call the deleteSpecificXmlPart function to delete the XML part associated with the uniqueId
+        await deleteSpecificXmlPart(uniqueId);
+
+        console.log(`Key "${uniqueId}" and its value have been deleted successfully.`);
+        alert(`Key "${uniqueId}" and its associated value have been deleted successfully.`);
+    } catch (error) {
+        console.error(`Error deleting the key "${uniqueId}":`, error);
+        alert(`An error occurred while trying to delete the key "${uniqueId}". Please try again.`);
+    }
+}
