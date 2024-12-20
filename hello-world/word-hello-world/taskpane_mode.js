@@ -142,15 +142,29 @@ async function encryptEntireDocument() {
     }
 
     await Word.run(async (context) => {
-        const serialized = await serializeEntireDocument(context);
-        const encrypted = CryptoJS.AES.encrypt(serialized, key).toString();
+        try {
+            const body = context.document.body;
+            body.load("text");
+            await context.sync();
 
-        const body = context.document.body;
-        body.clear();
-        body.insertText(encrypted, Word.InsertLocation.start);
-        await context.sync();
-    }).catch(err => console.error("Error encrypting the entire document:", err));
+            const documentContent = body.text; // Get the entire document content
+            const encryptedContent = CryptoJS.AES.encrypt(documentContent, key).toString();
+
+            // Add the encrypted content to custom XML with the hardcoded key name "Key001"
+            await addCustomXml(encryptedContent, "Key001");
+
+            // Replace document content with the key reference
+            body.clear();
+            body.insertText("Key001", Word.InsertLocation.start);
+            await context.sync();
+
+            console.log("Entire document encrypted and key reference inserted.");
+        } catch (error) {
+            console.error("Error encrypting the entire document:", error);
+        }
+    });
 }
+
 
 async function decryptEntireDocument() {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -161,22 +175,41 @@ async function decryptEntireDocument() {
         return;
     }
 
-    await Word.run(async (context) => {
-        const body = context.document.body;
-        body.load("text");
-        await context.sync();
+    try {
+        // Retrieve the encrypted content from custom XML using the hardcoded key name "Key001"
+        const encryptedContent = await getSpecificXmlPartContent("Key001");
 
-        const decryptedBytes = CryptoJS.AES.decrypt(body.text, key);
-        const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
-
-        if (!decryptedContent) {
-            console.error("Decryption failed. Check the key and content.");
+        if (!encryptedContent) {
+            console.error(`Encrypted content not found for key: Key001`);
             return;
         }
 
-        await deserializeAndInsertIntoDocument(context, decryptedContent);
-    }).catch(err => console.error("Error decrypting the entire document:", err));
+        await Word.run(async (context) => {
+            try {
+                const decryptedBytes = CryptoJS.AES.decrypt(encryptedContent, key);
+                const decryptedContent = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+                if (!decryptedContent) {
+                    console.error("Decryption failed. Check the key and content.");
+                    return;
+                }
+
+                // Replace the document content with the decrypted content
+                const body = context.document.body;
+                body.clear();
+                body.insertText(decryptedContent, Word.InsertLocation.start);
+                await context.sync();
+
+                console.log("Entire document decrypted successfully.");
+            } catch (error) {
+                console.error("Error decrypting the document content:", error);
+            }
+        });
+    } catch (error) {
+        console.error("Error retrieving encrypted content:", error);
+    }
 }
+
 
 async function writeHelloWorlds() {
     await Word.run(async (context) => {
