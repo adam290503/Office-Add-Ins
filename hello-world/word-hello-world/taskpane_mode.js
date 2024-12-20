@@ -297,7 +297,7 @@ async function displayAllKeys() {
     const namespace = "http://schemas.custom.xml";
 
     try {
-        //Retrieve all custom XML parts with the specified namespace
+        // Retrieve all custom XML parts with the specified namespace
         const customXmlParts = await getAllCustomXmlParts(namespace);
 
         if (customXmlParts.length === 0) {
@@ -307,7 +307,7 @@ async function displayAllKeys() {
 
         let allKeys = [];
 
-        //  Iterate through each custom XML part to extract keys
+        // Iterate through each custom XML part to extract keys
         for (let part of customXmlParts) {
             try {
                 // Retrieve the XML content of the custom XML part
@@ -321,7 +321,7 @@ async function displayAllKeys() {
                     });
                 });
 
-                //  Parse XML and extract keys
+                // Parse XML and extract keys
                 const keys = getKeysFromXml(xml, namespace);
                 allKeys = allKeys.concat(keys);
             } catch (err) {
@@ -337,28 +337,24 @@ async function displayAllKeys() {
         // Remove duplicate keys, if any
         const uniqueKeys = [...new Set(allKeys)];
 
-        // Insert the list of keys into the document
-        await Word.run(async (context) => {
-            const body = context.document.body;
+        // Populate the dropdown
+        const dropdown = document.getElementById("keysDropdown");
+        dropdown.innerHTML = '<option value="">Select a key</option>'; // Reset dropdown
 
-            // Insert a heading
-            body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
-
-            const listItems = uniqueKeys.map(key => `${key}`).join("\n");
-            uniqueKeys.forEach(key => {
-                body.insertParagraph(key, Word.InsertLocation.end);
-            });
-            
-
-            await context.sync();
+        uniqueKeys.forEach((key) => {
+            const option = document.createElement("option");
+            option.value = key;
+            option.textContent = key;
+            dropdown.appendChild(option);
         });
 
-        console.log("All keys have been displayed successfully.");
+        console.log("Dropdown has been populated with keys successfully.");
     } catch (error) {
         console.error("Error in displayAllKeys:", error);
         alert("An error occurred while retrieving keys.");
     }
 }
+
 
 /**
  * Adds a custom XML part to the document.
