@@ -50,7 +50,7 @@ function copyContentWithOOXML() {
         (result) => {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
                 copiedOOXML = result.value;
-                console.log("OOXML copied:", copiedOOXML);
+                //console.log("OOXML copied:", copiedOOXML);
             } else {
                 console.error("Error retrieving OOXML:", result.error.message);
             }
@@ -526,6 +526,7 @@ async function displayAllKeys() {
 
         let allKeys = [];
 
+        // Step 2: Iterate through each custom XML part to extract keys
         for (let part of customXmlParts) {
             try {
                 // Retrieve the XML content of the custom XML part
@@ -539,6 +540,7 @@ async function displayAllKeys() {
                     });
                 });
 
+                // Step 3: Parse XML and extract keys
                 const keys = getKeysFromXml(xml, namespace);
                 allKeys = allKeys.concat(keys);
             } catch (err) {
@@ -551,14 +553,17 @@ async function displayAllKeys() {
             return;
         }
 
+        // Remove duplicate keys, if any
         const uniqueKeys = [...new Set(allKeys)];
 
+        // Step 4: Insert the list of keys into the document
         await Word.run(async (context) => {
             const body = context.document.body;
 
             // Insert a heading
             body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
 
+            // Insert each key as a bulleted list item
             const listItems = uniqueKeys.map(key => `• ${key}`).join("\n");
             body.insertParagraph(listItems, Word.InsertLocation.end);
 
