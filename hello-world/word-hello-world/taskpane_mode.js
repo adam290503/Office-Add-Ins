@@ -6,6 +6,8 @@ Office.onReady((info) => {
         document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
         document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
         document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
+        document.getElementById("displayKeysButton").addEventListener("click", displayAllKeys)
+
 
         Office.context.document.addHandlerAsync(
             Office.EventType.DocumentSelectionChanged,
