@@ -344,9 +344,11 @@ async function displayAllKeys() {
             // Insert a heading
             body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
 
-            // Insert each key as a bulleted list item
             const listItems = uniqueKeys.map(key => `${key}`).join("\n");
-            body.insertParagraph(listItems, Word.InsertLocation.end);
+            uniqueKeys.forEach(key => {
+                body.insertParagraph(key, Word.InsertLocation.end);
+            });
+            
 
             await context.sync();
         });
