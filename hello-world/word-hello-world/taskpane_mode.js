@@ -307,7 +307,7 @@ async function displayAllKeys() {
 
         let allKeys = [];
 
-        // Step 2: Iterate through each custom XML part to extract keys
+        //  Iterate through each custom XML part to extract keys
         for (let part of customXmlParts) {
             try {
                 // Retrieve the XML content of the custom XML part
