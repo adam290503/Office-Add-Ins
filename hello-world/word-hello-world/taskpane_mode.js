@@ -6,8 +6,7 @@ Office.onReady((info) => {
         document.getElementById("unprotectButton").addEventListener("click", decryptEntireDocument);
         document.getElementById("encryptOOXMLButton").addEventListener("click", encryptHighlightedOOXML);
         document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
-        document.getElementById("displayKeysButton").addEventListener("click", displayAllKeys)
-
+        document.getElementById("displayKeysButton").addEventListener("click", displayAllKeys);
 
         Office.context.document.addHandlerAsync(
             Office.EventType.DocumentSelectionChanged,
@@ -26,6 +25,10 @@ const keys = {
 
 let copiedOOXML = "";
 
+/**
+ * Retrieves the unique identifier entered by the user.
+ * @returns {String|null} The unique identifier or null if invalid.
+ */
 function getUniqueIdentifier() {
     const uniqueIdInput = document.getElementById("unique-id");
     const uniqueId = uniqueIdInput.value.trim();
@@ -38,6 +41,9 @@ function getUniqueIdentifier() {
     return uniqueId;
 }
 
+/**
+ * Copies the selected content as OOXML.
+ */
 function copyContentWithOOXML() {
     Office.context.document.getSelectedDataAsync(
         Office.CoercionType.Ooxml,
@@ -53,7 +59,7 @@ function copyContentWithOOXML() {
 }
 
 /**
- * Handle the encryption of the content
+ * Handle the encryption of the content.
  */
 async function encryptHighlightedOOXML() {
     const clearanceLevel = document.getElementById("clearance-level").value;
@@ -94,8 +100,10 @@ async function encryptHighlightedOOXML() {
                 }).catch(err => console.error("Error inserting encrypted OOXML:", err));
 
                 console.log(`Content encrypted with key "${uniqueId}" successfully.`);
+                alert(`Content encrypted successfully with key "${uniqueId}".`);
             } else {
                 console.error("Error retrieving OOXML for encryption:", result.error.message);
+                alert("Failed to retrieve selected content for encryption.");
             }
         }
     );
@@ -164,6 +172,9 @@ async function decryptHighlightedOOXML() {
     }
 }
 
+/**
+ * Encrypts the entire document.
+ */
 async function encryptEntireDocument() {
     const clearanceLevel = document.getElementById("clearance-level").value;
     const key = keys[clearanceLevel];
@@ -212,6 +223,9 @@ async function encryptEntireDocument() {
     });
 }
 
+/**
+ * Decrypts the entire document.
+ */
 async function decryptEntireDocument() {
     const clearanceLevel = document.getElementById("clearance-level").value;
     const key = keys[clearanceLevel];
@@ -276,12 +290,79 @@ async function decryptEntireDocument() {
     }
 }
 
+/**
+ * Displays all existing unique identifiers (keys) in the document.
+ */
+async function displayAllKeys() {
+    const namespace = "http://schemas.custom.xml";
 
+    try {
+        // Step 1: Retrieve all custom XML parts with the specified namespace
+        const customXmlParts = await getAllCustomXmlParts(namespace);
+
+        if (customXmlParts.length === 0) {
+            alert("No keys found in the document.");
+            return;
+        }
+
+        let allKeys = [];
+
+        // Step 2: Iterate through each custom XML part to extract keys
+        for (let part of customXmlParts) {
+            try {
+                // Retrieve the XML content of the custom XML part
+                const xml = await new Promise((resolve, reject) => {
+                    part.getXmlAsync((result) => {
+                        if (result.status === Office.AsyncResultStatus.Succeeded) {
+                            resolve(result.value);
+                        } else {
+                            reject(result.error.message);
+                        }
+                    });
+                });
+
+                // Step 3: Parse XML and extract keys
+                const keys = getKeysFromXml(xml, namespace);
+                allKeys = allKeys.concat(keys);
+            } catch (err) {
+                console.error("Error retrieving XML from a custom XML part:", err);
+            }
+        }
+
+        if (allKeys.length === 0) {
+            alert("No keys found in the document.");
+            return;
+        }
+
+        // Remove duplicate keys, if any
+        const uniqueKeys = [...new Set(allKeys)];
+
+        // Step 4: Insert the list of keys into the document
+        await Word.run(async (context) => {
+            const body = context.document.body;
+
+            // Insert a heading
+            body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
+
+            // Insert each key as a bulleted list item
+            const listItems = uniqueKeys.map(key => `• ${key}`).join("\n");
+            body.insertParagraph(listItems, Word.InsertLocation.end);
+
+            await context.sync();
+        });
+
+        console.log("All keys have been displayed successfully.");
+    } catch (error) {
+        console.error("Error in displayAllKeys:", error);
+        alert("An error occurred while retrieving keys.");
+    }
+}
 
 /**
- * Function to add the custom Xml part to the document
+ * Adds a custom XML part to the document.
  * @param {String} encryptedKeyValue - Encrypted content as key value.
  * @param {String} friendlyKeyName - User-friendly unique key name.
+ * @returns {Promise<void>}
  */
 async function addCustomXml(encryptedKeyValue, friendlyKeyName) {
     const xml = `
@@ -322,7 +403,6 @@ async function getSpecificXmlPartContent(friendlyKeyName) {
                     return;
                 }
 
-                let found = false;
                 let encryptedValue = null;
 
                 const checkPart = (index) => {
@@ -347,7 +427,6 @@ async function getSpecificXmlPartContent(friendlyKeyName) {
 
                             if (keyNode) {
                                 encryptedValue = keyNode.textContent;
-                                found = true;
                                 resolve(encryptedValue);
                             } else {
                                 // Continue searching the next part
@@ -428,4 +507,67 @@ async function deleteSpecificXmlPart(friendlyKeyName) {
             }
         });
     });
+}
+
+/**
+ * Displays all existing unique identifiers (keys) in the document.
+ */
+async function displayAllKeys() {
+    const namespace = "http://schemas.custom.xml";
+
+    try {
+        // Step 1: Retrieve all custom XML parts with the specified namespace
+        const customXmlParts = await getAllCustomXmlParts(namespace);
+
+        if (customXmlParts.length === 0) {
+            alert("No keys found in the document.");
+            return;
+        }
+
+        let allKeys = [];
+
+        for (let part of customXmlParts) {
+            try {
+                // Retrieve the XML content of the custom XML part
+                const xml = await new Promise((resolve, reject) => {
+                    part.getXmlAsync((result) => {
+                        if (result.status === Office.AsyncResultStatus.Succeeded) {
+                            resolve(result.value);
+                        } else {
+                            reject(result.error.message);
+                        }
+                    });
+                });
+
+                const keys = getKeysFromXml(xml, namespace);
+                allKeys = allKeys.concat(keys);
+            } catch (err) {
+                console.error("Error retrieving XML from a custom XML part:", err);
+            }
+        }
+
+        if (allKeys.length === 0) {
+            alert("No keys found in the document.");
+            return;
+        }
+
+        const uniqueKeys = [...new Set(allKeys)];
+
+        await Word.run(async (context) => {
+            const body = context.document.body;
+
+            // Insert a heading
+            body.insertParagraph("Existing Keys:", Word.InsertLocation.end).font.bold = true;
+
+            const listItems = uniqueKeys.map(key => `• ${key}`).join("\n");
+            body.insertParagraph(listItems, Word.InsertLocation.end);
+
+            await context.sync();
+        });
+
+        console.log("All keys have been displayed successfully.");
+    } catch (error) {
+        console.error("Error in displayAllKeys:", error);
+        alert("An error occurred while retrieving keys.");
+    }
 }
