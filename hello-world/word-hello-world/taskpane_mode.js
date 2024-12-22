@@ -1,6 +1,4 @@
-/*************************************************
- * Simple notification system for the task pane
- *************************************************/
+
 function showNotification(message, isError = false) {
     const notificationElement = document.getElementById("notification");
     if (!notificationElement) {
