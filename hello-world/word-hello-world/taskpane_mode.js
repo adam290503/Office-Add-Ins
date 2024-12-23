@@ -9,7 +9,7 @@ function showNotification(message, isError = false) {
     // Set text
     notificationElement.textContent = message;
   
-    // Style differently for error vs. success
+    //notifications will be differently styled for errors
     if (isError) {
       notificationElement.style.backgroundColor = "#f8d7da"; // light red
       notificationElement.style.color = "#721c24";           // dark red
@@ -20,7 +20,6 @@ function showNotification(message, isError = false) {
       notificationElement.style.borderColor = "#c3e6cb";
     }
   
-    // Make sure it’s visible
     notificationElement.style.display = "block";
   }
   
@@ -32,9 +31,7 @@ function showNotification(message, isError = false) {
     }
   }
   
-  /*************************************************
-   * Office add-in logic
-   *************************************************/
+
   Office.onReady((info) => {
       if (info.host === Office.HostType.Word) {
           document.getElementById("protectButton").addEventListener("click", encryptEntireDocument);
