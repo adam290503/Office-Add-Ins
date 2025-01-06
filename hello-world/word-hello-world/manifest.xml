@@ -8,7 +8,7 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Contoso</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Secure Document Add-in"/>
+  <DisplayName DefaultValue="Secure Collab Document Add-in"/>
   <Description DefaultValue="Encrypt and decrypt document sections based on roles."/>
   <IconUrl DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/assets/icon-64.png"/>
@@ -73,14 +73,14 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://adam290503.github.io/Office-Add-Ins/hello-world/word-hello-world/taskpane_mode.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with Secure Document Add-in!"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with Secure Collab Document Add-in!"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="Secure Document"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Secure Document"/>
         <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Secure Document"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Protect and manage document access using encryption."/>
-        <bt:String id="TaskpaneButton.SupertipText" DefaultValue="Open the Secure Document add-in."/>
+        <bt:String id="TaskpaneButton.SupertipText" DefaultValue="Open the Secure Collab Document add-in."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
