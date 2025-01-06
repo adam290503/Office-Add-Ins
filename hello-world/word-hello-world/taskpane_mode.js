@@ -40,6 +40,8 @@ function showNotification(message, isError = false) {
       document.getElementById("decryptOOXMLButton").addEventListener("click", decryptHighlightedOOXML);
       document.getElementById("displayKeysButton").addEventListener("click", displayAllKeys);
       document.getElementById("deleteKeysButton").addEventListener("click", deleteKey);
+      document.getElementById("unlockAllButton").addEventListener("click", decryptAllKeys);
+
 
       Office.context.document.addHandlerAsync(
         Office.EventType.DocumentSelectionChanged,
@@ -612,3 +614,112 @@ function showNotification(message, isError = false) {
       showNotification(`An error occurred while trying to delete the key "${uniqueId}". Please try again.`, true);
     }
   }
+
+
+  async function decryptAllKeys() {
+    const clearanceLevel = document.getElementById("clearance-level").value;
+    const key = keys[clearanceLevel];
+  
+    if (!key) {
+      console.error("No valid key selected.");
+      showNotification("Please select a valid clearance level.", true);
+      return;
+    }
+  
+    // Get all custom XML parts in the "http://schemas.custom.xml" namespace
+    let allParts;
+    try {
+      allParts = await getAllCustomXmlParts("http://schemas.custom.xml");
+      if (!allParts || allParts.length === 0) {
+        showNotification("No encrypted data found in the document.");
+        return;
+      }
+    } catch (error) {
+      console.error("Error retrieving custom XML parts:", error);
+      showNotification("Failed to retrieve encrypted data.", true);
+      return;
+    }
+  
+    // We'll track how many items we successfully decrypted
+    let decryptedCount = 0;
+  
+    // Iterate over each part to see if we can decrypt it with the selected key
+    for (const part of allParts) {
+      try {
+        // Get the raw XML from this customXmlPart
+        const xml = await new Promise((resolve, reject) => {
+          part.getXmlAsync((result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+              resolve(result.value);
+            } else {
+              reject(result.error);
+            }
+          });
+        });
+  
+        // Example: <Metadata xmlns="http://schemas.custom.xml">
+        //             <Node>
+        //               <Key001>ENCRYPTED_STRING</Key001>
+        //             </Node>
+        //           </Metadata>
+  
+        // Parse out each child (the "uniqueId") from <Node>
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xml, "application/xml");
+  
+        // Each <Node> can have multiple <uniqueId> children
+        const nodes = xmlDoc.getElementsByTagNameNS("http://schemas.custom.xml", "Node");
+  
+        for (let node of nodes) {
+          for (let child of node.children) {
+            const friendlyKeyName = child.tagName; // e.g. "Key001"
+            const encryptedData = child.textContent; // e.g. "U2FsdGVkX1+..."
+  
+            if (!encryptedData) {
+              continue; // no content, skip
+            }
+  
+            // Attempt decryption
+            let decryptedOOXML = "";
+            try {
+              const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
+              decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
+            } catch (err) {
+              // This means invalid key, skip
+              console.log(`Skipping key "${friendlyKeyName}" due to decryption error.`);
+              continue;
+            }
+  
+            if (!decryptedOOXML) {
+              // If it decrypts to empty, skip
+              console.log(`Skipping key "${friendlyKeyName}" because the content didn't decrypt properly.`);
+              continue;
+            }
+  
+            // If we get here, we have valid OOXML
+            await Word.run(async (context) => {
+              const body = context.document.body;
+              // Replace entire doc content with this newly-decrypted OOXML
+              // If your doc uses smaller placeholders, or you only want partial replacement,
+              // you might need a more specialized search-and-replace approach.
+              body.clear();
+              body.insertOoxml(decryptedOOXML, Word.InsertLocation.start);
+              await context.sync();
+            });
+  
+            decryptedCount++;
+            console.log(`Successfully decrypted key "${friendlyKeyName}".`);
+          }
+        }
+      } catch (err) {
+        console.log("Skipping a part due to an error: ", err);
+      }
+    }
+  
+    if (decryptedCount > 0) {
+      showNotification(`Successfully decrypted ${decryptedCount} item(s).`);
+    } else {
+      showNotification("No items were decrypted. Either they are encrypted with a different key or no data found.", true);
+    }
+  }
+  
