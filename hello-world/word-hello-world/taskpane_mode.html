@@ -7,16 +7,13 @@
       font-family: Arial, sans-serif;
       margin: 20px;
     }
-
     h2 {
       color: #333;
     }
-
     label, button, select, input {
       font-size: 14px;
       margin: 5px 0;
     }
-
     button {
       display: block;
       margin-bottom: 10px;
@@ -27,26 +24,32 @@
       border-radius: 5px;
       cursor: pointer;
     }
-
     button:hover {
       background-color: #005A9E;
     }
-
     select, input {
       padding: 8px;
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-
     /* Notification area */
     #notification {
-      display: none; /* hidden by default; we’ll make it visible with JS */
+      display: none;
       margin-top: 20px;
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 5px;
     }
   </style>
+
+  <!-- Office.js and CryptoJS libraries -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+  <script src="notificationHelpers.js"></script>
+  <script src="xmlHelpers.js"></script>
+  <script src="documentOperations.js"></script>
+  <script src="app.js"></script>
 </head>
 <body>
   <h2>Document Security Controls</h2>
@@ -60,12 +63,10 @@
   </select>
   <br>
 
-  <!-- 2) Unique identifier input -->
   <label for="unique-id">Enter Unique Identifier for Encryption:</label>
   <input type="text" id="unique-id" placeholder="Enter identifier (e.g., Key001)">
   <br><br>
 
-  <!-- 3) Buttons for encryption/decryption actions -->
   <button id="protectButton">Encrypt Entire Document</button>
   <button id="unprotectButton">Decrypt Entire Document</button>
   <button id="encryptOOXMLButton">Protect</button>
@@ -73,20 +74,13 @@
   <button id="displayKeysButton">Display keys</button>
   <button id="deleteKeysButton">Delete entered key</button>
 
-  <!-- 4) Dropdown for listing existing keys in the document -->
+  <!-- Dropdown for listing existing keys in the document -->
   <label for="keysDropdown">Select Key:</label>
   <select id="keysDropdown">
     <option value="">--No keys loaded--</option>
   </select>
   <br>
 
-  <!-- 5) Notification area (for success/error messages) -->
   <div id="notification"></div>
-
-  <!-- Office.js and CryptoJS libraries -->
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <!-- Your taskpane JavaScript -->
-  <script src="taskpane_mode.js"></script>
 </body>
 </html>
