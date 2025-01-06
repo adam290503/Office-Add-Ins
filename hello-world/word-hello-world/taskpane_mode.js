@@ -48,7 +48,7 @@ function showNotification(message, isError = false) {
         () => copyContentWithOOXML()
       );
 
-      // Optional: On load, populate the keys dropdown:
+    // On load, populate the keys dropdown:
       displayAllKeys();
 
       copyContentWithOOXML();
@@ -626,7 +626,6 @@ function showNotification(message, isError = false) {
       return;
     }
   
-    // Get all custom XML parts in the "http://schemas.custom.xml" namespace
     let allParts;
     try {
       allParts = await getAllCustomXmlParts("http://schemas.custom.xml");
@@ -640,10 +639,8 @@ function showNotification(message, isError = false) {
       return;
     }
   
-    // We'll track how many items we successfully decrypted
     let decryptedCount = 0;
   
-    // Iterate over each part to see if we can decrypt it with the selected key
     for (const part of allParts) {
       try {
         // Get the raw XML from this customXmlPart
@@ -657,13 +654,8 @@ function showNotification(message, isError = false) {
           });
         });
   
-        // Example: <Metadata xmlns="http://schemas.custom.xml">
-        //             <Node>
-        //               <Key001>ENCRYPTED_STRING</Key001>
-        //             </Node>
-        //           </Metadata>
-  
-        // Parse out each child (the "uniqueId") from <Node>
+       
+        // Parse out each child from <Node>
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xml, "application/xml");
   
@@ -672,26 +664,24 @@ function showNotification(message, isError = false) {
   
         for (let node of nodes) {
           for (let child of node.children) {
-            const friendlyKeyName = child.tagName; // e.g. "Key001"
-            const encryptedData = child.textContent; // e.g. "U2FsdGVkX1+..."
+            const friendlyKeyName = child.tagName; 
+            const encryptedData = child.textContent; 
   
             if (!encryptedData) {
-              continue; // no content, skip
+              continue; 
             }
   
-            // Attempt decryption
             let decryptedOOXML = "";
             try {
               const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
               decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
             } catch (err) {
-              // This means invalid key, skip
-              console.log(`Skipping key "${friendlyKeyName}" due to decryption error.`);
+
+                console.log(`Skipping key "${friendlyKeyName}" due to decryption error.`);
               continue;
             }
   
             if (!decryptedOOXML) {
-              // If it decrypts to empty, skip
               console.log(`Skipping key "${friendlyKeyName}" because the content didn't decrypt properly.`);
               continue;
             }
@@ -699,9 +689,7 @@ function showNotification(message, isError = false) {
             // If we get here, we have valid OOXML
             await Word.run(async (context) => {
               const body = context.document.body;
-              // Replace entire doc content with this newly-decrypted OOXML
-              // If your doc uses smaller placeholders, or you only want partial replacement,
-              // you might need a more specialized search-and-replace approach.
+              
               body.clear();
               body.insertOoxml(decryptedOOXML, Word.InsertLocation.start);
               await context.sync();
