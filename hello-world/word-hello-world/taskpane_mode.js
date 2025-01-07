@@ -616,7 +616,11 @@ function showNotification(message, isError = false) {
   }
 
 
-  async function decryptAllKeys() {
+/*******************************************************
+ *     Decrypt ALL keys with the currently selected    *
+ *     clearance level, searching for placeholders     *
+ *******************************************************/
+async function decryptAllKeys() {
     const clearanceLevel = document.getElementById("clearance-level").value;
     const key = keys[clearanceLevel];
   
@@ -630,7 +634,7 @@ function showNotification(message, isError = false) {
   
     let allParts;
     try {
-      // 1) Get ALL custom XML parts from "http://schemas.custom.xml"
+      // Retrieve all custom XML parts from "http://schemas.custom.xml"
       allParts = await getAllCustomXmlParts("http://schemas.custom.xml");
       if (!allParts || allParts.length === 0) {
         showNotification("No encrypted data found in the document.");
@@ -644,10 +648,10 @@ function showNotification(message, isError = false) {
   
     let decryptedCount = 0;
   
-    // 2) Iterate over each custom XML part
+    // Loop through each custom XML part
     for (const part of allParts) {
       try {
-        // Retrieve the XML text from this custom XML part
+        // Grab the raw XML from this customXmlPart
         const xml = await new Promise((resolve, reject) => {
           part.getXmlAsync((result) => {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
@@ -660,15 +664,7 @@ function showNotification(message, isError = false) {
   
         console.log("CustomXmlPart contents:", xml);
   
-        // Example structure:
-        // <Metadata xmlns="http://schemas.custom.xml">
-        //   <Node>
-        //     <key1>EncryptedText...</key1>
-        //     <key2>EncryptedText...</key2>
-        //   </Node>
-        // </Metadata>
-  
-        // 3) Parse the XML, find each <friendlyKeyName>...</friendlyKeyName>
+        // Parse out each child <friendlyKeyName>EncryptedText</friendlyKeyName>
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xml, "application/xml");
         const nodes = xmlDoc.getElementsByTagNameNS("http://schemas.custom.xml", "Node");
@@ -676,16 +672,15 @@ function showNotification(message, isError = false) {
         for (let node of nodes) {
           for (let child of node.children) {
             const friendlyKeyName = child.tagName;   // e.g. "key2"
-            const encryptedData   = child.textContent;
+            const encryptedData = child.textContent;
             console.log(`Found key/tag: "${friendlyKeyName}" with encrypted text length = ${encryptedData?.length}`);
   
-            // Skip if no data
             if (!encryptedData) {
               console.log(`No encrypted text for "${friendlyKeyName}". Skipping.`);
               continue;
             }
   
-            // 4) Decrypt
+            // Attempt to decrypt with the current clearance-level key
             let decryptedOOXML = "";
             try {
               const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
@@ -695,7 +690,7 @@ function showNotification(message, isError = false) {
               continue;
             }
   
-            // If the result is empty, it usually means wrong key
+            // If it decrypts to an empty string, it likely means the key didn't match
             if (!decryptedOOXML) {
               console.log(`Failed to decrypt "${friendlyKeyName}". Possibly the wrong key?`);
               continue;
@@ -703,9 +698,9 @@ function showNotification(message, isError = false) {
   
             console.log(`Successfully decrypted "${friendlyKeyName}". Now searching the doc for it...`);
   
-            // 5) Search and replace that placeholder in the doc
+            // Search the body for that placeholder (friendlyKeyName) and replace it
             await Word.run(async (context) => {
-              // Use more permissive search:
+              // Use matchCase: false, matchWholeWord: false for a more flexible search
               let searchResults = context.document.body.search(friendlyKeyName, {
                 matchCase: false,
                 matchWholeWord: false
@@ -721,7 +716,7 @@ function showNotification(message, isError = false) {
                 item.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
                 decryptedCount++;
               }
-              await context.sync(); // ensure the insertion is committed
+              await context.sync(); // commit the insertion
             });
           }
         }
@@ -730,7 +725,7 @@ function showNotification(message, isError = false) {
       }
     }
   
-    // 6) Notify user how many placeholders were replaced
+    // Show how many placeholders were actually replaced
     if (decryptedCount > 0) {
       showNotification(`Successfully decrypted ${decryptedCount} item(s).`);
     } else {
