@@ -634,7 +634,7 @@ async function decryptAllKeys() {
   
     let allParts;
     try {
-      // Retrieve all custom XML parts from "http://schemas.custom.xml"
+      // Retrieve all custom XML parts 
       allParts = await getAllCustomXmlParts("http://schemas.custom.xml");
       if (!allParts || allParts.length === 0) {
         showNotification("No encrypted data found in the document.");
@@ -664,14 +664,13 @@ async function decryptAllKeys() {
   
         console.log("CustomXmlPart contents:", xml);
   
-        // Parse out each child <friendlyKeyName>EncryptedText</friendlyKeyName>
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xml, "application/xml");
         const nodes = xmlDoc.getElementsByTagNameNS("http://schemas.custom.xml", "Node");
   
         for (let node of nodes) {
           for (let child of node.children) {
-            const friendlyKeyName = child.tagName;   // e.g. "key2"
+            const friendlyKeyName = child.tagName;  
             const encryptedData = child.textContent;
             console.log(`Found key/tag: "${friendlyKeyName}" with encrypted text length = ${encryptedData?.length}`);
   
@@ -698,9 +697,7 @@ async function decryptAllKeys() {
   
             console.log(`Successfully decrypted "${friendlyKeyName}". Now searching the doc for it...`);
   
-            // Search the body for that placeholder (friendlyKeyName) and replace it
             await Word.run(async (context) => {
-              // Use matchCase: false, matchWholeWord: false for a more flexible search
               let searchResults = context.document.body.search(friendlyKeyName, {
                 matchCase: false,
                 matchWholeWord: false
@@ -725,7 +722,6 @@ async function decryptAllKeys() {
       }
     }
   
-    // Show how many placeholders were actually replaced
     if (decryptedCount > 0) {
       showNotification(`Successfully decrypted ${decryptedCount} item(s).`);
     } else {
