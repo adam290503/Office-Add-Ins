@@ -630,6 +630,7 @@ function showNotification(message, isError = false) {
   
     let allParts;
     try {
+      // 1) Get ALL custom XML parts from "http://schemas.custom.xml"
       allParts = await getAllCustomXmlParts("http://schemas.custom.xml");
       if (!allParts || allParts.length === 0) {
         showNotification("No encrypted data found in the document.");
@@ -643,8 +644,10 @@ function showNotification(message, isError = false) {
   
     let decryptedCount = 0;
   
+    // 2) Iterate over each custom XML part
     for (const part of allParts) {
       try {
+        // Retrieve the XML text from this custom XML part
         const xml = await new Promise((resolve, reject) => {
           part.getXmlAsync((result) => {
             if (result.status === Office.AsyncResultStatus.Succeeded) {
@@ -657,17 +660,24 @@ function showNotification(message, isError = false) {
   
         console.log("CustomXmlPart contents:", xml);
   
-        
-        
+        // Example structure:
+        // <Metadata xmlns="http://schemas.custom.xml">
+        //   <Node>
+        //     <key1>EncryptedText...</key1>
+        //     <key2>EncryptedText...</key2>
+        //   </Node>
+        // </Metadata>
   
+        // 3) Parse the XML, find each <friendlyKeyName>...</friendlyKeyName>
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xml, "application/xml");
         const nodes = xmlDoc.getElementsByTagNameNS("http://schemas.custom.xml", "Node");
   
         for (let node of nodes) {
           for (let child of node.children) {
-            const friendlyKeyName = child.tagName;   // e.g. "Key001"
+            const friendlyKeyName = child.tagName;   // e.g. "key2"
             const encryptedData   = child.textContent;
+            console.log(`Found key/tag: "${friendlyKeyName}" with encrypted text length = ${encryptedData?.length}`);
   
             // Skip if no data
             if (!encryptedData) {
@@ -675,54 +685,59 @@ function showNotification(message, isError = false) {
               continue;
             }
   
+            // 4) Decrypt
             let decryptedOOXML = "";
             try {
               const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
               decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
             } catch (err) {
-              console.log(`Decryption error for key "${friendlyKeyName}". Skipping.`);
+              console.log(`Decryption error for key "${friendlyKeyName}":`, err);
               continue;
             }
   
+            // If the result is empty, it usually means wrong key
             if (!decryptedOOXML) {
-              console.log(`Failed to decrypt "${friendlyKeyName}". Possibly a different key was used?`);
+              console.log(`Failed to decrypt "${friendlyKeyName}". Possibly the wrong key?`);
               continue;
             }
   
             console.log(`Successfully decrypted "${friendlyKeyName}". Now searching the doc for it...`);
   
+            // 5) Search and replace that placeholder in the doc
             await Word.run(async (context) => {
-
-                let searchResults = context.document.body.search(friendlyKeyName, {
+              // Use more permissive search:
+              let searchResults = context.document.body.search(friendlyKeyName, {
                 matchCase: false,
                 matchWholeWord: false
               });
               context.load(searchResults, "text");
               await context.sync();
   
-              console.log(`Found ${searchResults.items.length} occurrences of "${friendlyKeyName}".`);
+              console.log(`Found ${searchResults.items.length} occurrences of "${friendlyKeyName}" in the body.`);
   
+              // Replace each occurrence with the decrypted OOXML
               for (const item of searchResults.items) {
                 console.log("Replacing text:", item.text);
                 item.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
                 decryptedCount++;
               }
-  
-              await context.sync();
+              await context.sync(); // ensure the insertion is committed
             });
           }
         }
       } catch (err) {
-        console.log("Skipping part due to error:", err);
+        console.log("Skipping this XML part due to error:", err);
       }
     }
   
+    // 6) Notify user how many placeholders were replaced
     if (decryptedCount > 0) {
       showNotification(`Successfully decrypted ${decryptedCount} item(s).`);
     } else {
       showNotification(
-        "No items were decrypted. Either they're encrypted with a different key or no matching placeholders were found.",
+        "No items were decrypted. Possibly a different key was used or no matching placeholders were found.",
         true
       );
     }
   }
+  
