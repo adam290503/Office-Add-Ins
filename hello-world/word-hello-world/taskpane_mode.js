@@ -626,6 +626,7 @@ function showNotification(message, isError = false) {
       return;
     }
   
+    // Retrieve all custom XML parts in the "http://schemas.custom.xml" namespace
     let allParts;
     try {
       allParts = await getAllCustomXmlParts("http://schemas.custom.xml");
@@ -641,6 +642,7 @@ function showNotification(message, isError = false) {
   
     let decryptedCount = 0;
   
+    // Iterate over each custom XML part
     for (const part of allParts) {
       try {
         // Get the raw XML from this customXmlPart
@@ -654,30 +656,35 @@ function showNotification(message, isError = false) {
           });
         });
   
-       
-        // Parse out each child from <Node>
+        // For example:
+        //   <Metadata xmlns="http://schemas.custom.xml">
+        //     <Node>
+        //       <Key001>ENCRYPTED_STRING</Key001>
+        //       <Key002>ENCRYPTED_STRING</Key002>
+        //     </Node>
+        //   </Metadata>
+  
+        // Parse out each child (the "friendlyKeyName") from <Node>
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xml, "application/xml");
   
-        // Each <Node> can have multiple <uniqueId> children
         const nodes = xmlDoc.getElementsByTagNameNS("http://schemas.custom.xml", "Node");
-  
         for (let node of nodes) {
           for (let child of node.children) {
-            const friendlyKeyName = child.tagName; 
-            const encryptedData = child.textContent; 
+            const friendlyKeyName = child.tagName;      // e.g. "Key001"
+            const encryptedData = child.textContent;    // e.g. "U2FsdGVkX1+..."
   
             if (!encryptedData) {
-              continue; 
+              continue; // no data
             }
   
+            // Attempt to decrypt
             let decryptedOOXML = "";
             try {
               const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
               decryptedOOXML = decryptedBytes.toString(CryptoJS.enc.Utf8);
             } catch (err) {
-
-                console.log(`Skipping key "${friendlyKeyName}" due to decryption error.`);
+              console.log(`Skipping key "${friendlyKeyName}" due to decryption error.`);
               continue;
             }
   
@@ -686,17 +693,22 @@ function showNotification(message, isError = false) {
               continue;
             }
   
-            // If we get here, we have valid OOXML
+            // At this point, we have valid OOXML. Let's replace the placeholder text
             await Word.run(async (context) => {
-              const body = context.document.body;
-              
-              body.clear();
-              body.insertOoxml(decryptedOOXML, Word.InsertLocation.start);
+              // Search for the placeholder text that was inserted in place of original content.
+              // We assume you replaced the original text with the same unique ID as 'friendlyKeyName'.
+              let searchResults = context.document.body.search(friendlyKeyName, { matchCase: false, matchWholeWord: true });
+              context.load(searchResults, 'text');
               await context.sync();
-            });
   
-            decryptedCount++;
-            console.log(`Successfully decrypted key "${friendlyKeyName}".`);
+              if (searchResults.items.length > 0) {
+                // Replace each occurrence with the decrypted OOXML
+                for (const item of searchResults.items) {
+                  item.insertOoxml(decryptedOOXML, Word.InsertLocation.replace);
+                  decryptedCount++;
+                }
+              }
+            });
           }
         }
       } catch (err) {
@@ -707,7 +719,7 @@ function showNotification(message, isError = false) {
     if (decryptedCount > 0) {
       showNotification(`Successfully decrypted ${decryptedCount} item(s).`);
     } else {
-      showNotification("No items were decrypted. Either they are encrypted with a different key or no data found.", true);
+      showNotification("No items were decrypted. Either they are encrypted with a different key or no matching placeholders found.", true);
     }
   }
   
